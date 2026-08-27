@@ -3,7 +3,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
-from apps.utilisateurs.permissions import EstAdmin, EstAdminOuMedecinEnLecture
+from apps.utilisateurs.permissions import EstAdmin, EstAdminOuMedecin, EstAdminOuMedecinEnLecture
 
 from .models import NoteMedicale, Patient, PatientMedecin
 from .permissions import PeutAccederAuPatient, medecin_suit_patient
@@ -14,9 +14,12 @@ class PatientViewSet(viewsets.ModelViewSet):
     """
     CRUD sur les patients, avec un périmètre différent par rôle :
     - admin : voit et modifie tous les patients
-    - médecin : voit et modifie uniquement les patients qu'il suit
-      activement (jamais la création — réservée à l'admin, car elle
-      implique la création d'un compte utilisateur associé)
+    - médecin : voit et modifie les patients qu'il suit activement ; peut
+      aussi CRÉER un nouveau patient — il devient alors automatiquement
+      son médecin suiveur (voir perform_create). Le compte Utilisateur
+      associé doit déjà exister (créé par un admin au préalable, car la
+      création de comptes reste une action strictement admin) : le
+      médecin référence cet utilisateur en créant la fiche Patient.
     - patient : voit uniquement sa propre fiche, en lecture seule
     """
 
@@ -39,11 +42,20 @@ class PatientViewSet(viewsets.ModelViewSet):
         return base.none()
 
     def get_permissions(self):
-        # La création est réservée à l'admin (cf. docstring ci-dessus) ;
-        # les autres actions passent par PeutAccederAuPatient (objet).
+        # Création : admin ou médecin (cf. docstring). Les autres actions
+        # passent par PeutAccederAuPatient (vérification au niveau objet).
         if self.action == "create":
-            return [IsAuthenticated(), EstAdmin()]
+            return [IsAuthenticated(), EstAdminOuMedecin()]
         return super().get_permissions()
+
+    def perform_create(self, serializer):
+        patient = serializer.save()
+        user = self.request.user
+        if user.role == ROLE_MEDECIN:
+            # Le médecin qui crée la fiche devient automatiquement son
+            # médecin suiveur actif — évite une étape manuelle séparée
+            # sur /suivis-medecin/ juste après la création.
+            PatientMedecin.objects.create(patient=patient, medecin=user, actif=True)
 
 
 class NoteMedicaleViewSet(viewsets.ModelViewSet):

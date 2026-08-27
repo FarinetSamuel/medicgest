@@ -101,7 +101,13 @@ class PatientAPIPermissionsTest(APITestCase):
         )
         self.assertEqual(response.status_code, 201)
 
-    def test_medecin_ne_peut_pas_creer_un_patient(self):
+    def test_medecin_peut_creer_un_patient_et_devient_suiveur_automatiquement(self):
+        """
+        Décision validée avec le porteur du projet : un médecin peut créer
+        directement une fiche patient (en référençant un compte
+        Utilisateur déjà existant, créé par un admin) et devient
+        automatiquement son médecin suiveur actif.
+        """
         user4 = creer_utilisateur_avec_role("patient4@example.com", ROLE_PATIENT)
         self.client.force_authenticate(self.medecin_a)
         response = self.client.post(
@@ -113,9 +119,43 @@ class PatientAPIPermissionsTest(APITestCase):
                 "sexe": "M",
             },
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 201)
+        patient_cree = Patient.objects.get(numero_dossier="DOS-API-4")
+        self.assertTrue(
+            PatientMedecin.objects.filter(
+                patient=patient_cree, medecin=self.medecin_a, actif=True
+            ).exists()
+        )
 
-    # --- Accès objet direct (retrieve) hors périmètre : 404, pas 403 ---
+    def test_medecin_qui_cree_voit_ensuite_le_patient_dans_son_perimetre(self):
+        user5 = creer_utilisateur_avec_role("patient5@example.com", ROLE_PATIENT)
+        self.client.force_authenticate(self.medecin_b)
+        self.client.post(
+            "/api/v1/patients/",
+            {
+                "utilisateur": str(user5.id),
+                "numero_dossier": "DOS-API-5",
+                "date_naissance": "2000-01-01",
+                "sexe": "F",
+            },
+        )
+        response = self.client.get("/api/v1/patients/")
+        dossiers = {p["numero_dossier"] for p in response.data["results"]}
+        self.assertIn("DOS-API-5", dossiers)
+
+    def test_patient_ne_peut_toujours_pas_creer_de_patient(self):
+        user6 = creer_utilisateur_avec_role("patient6@example.com", ROLE_PATIENT)
+        self.client.force_authenticate(self.user_patient_1)
+        response = self.client.post(
+            "/api/v1/patients/",
+            {
+                "utilisateur": str(user6.id),
+                "numero_dossier": "DOS-API-6",
+                "date_naissance": "2000-01-01",
+                "sexe": "M",
+            },
+        )
+        self.assertEqual(response.status_code, 403)    # --- Accès objet direct (retrieve) hors périmètre : 404, pas 403 ---
     # (get_queryset filtre déjà l'objet hors du set visible, donc DRF
     # renvoie naturellement 404 plutôt que de révéler son existence.)
 

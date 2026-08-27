@@ -22,6 +22,17 @@ class EstAdmin(permissions.BasePermission):
         )
 
 
+class EstAdminOuMedecin(permissions.BasePermission):
+    """Autorise les utilisateurs des groupes 'admin' ou 'medecin', sans distinction de méthode HTTP."""
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.role in (ROLE_ADMIN, ROLE_MEDECIN)
+        )
+
+
 class EstAdminOuMedecinEnLecture(permissions.BasePermission):
     """
     Lecture (GET/HEAD/OPTIONS) : admin ou médecin.
