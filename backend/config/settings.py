@@ -84,10 +84,16 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",
+        # BasicAuthentication : pratique pour tester l'API en local (curl,
+        # Postman) sans configurer de session. À retirer ou restreindre en
+        # production réelle si l'API est exposée publiquement sans HTTPS.
+        "rest_framework.authentication.BasicAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 25,
 }
 
 LANGUAGE_CODE = "fr-fr"

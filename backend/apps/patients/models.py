@@ -43,6 +43,7 @@ class Patient(models.Model):
     class Meta:
         verbose_name = "Patient"
         verbose_name_plural = "Patients"
+        ordering = ["numero_dossier"]
 
     def __str__(self):
         return f"{self.utilisateur.get_full_name()} (dossier {self.numero_dossier})"
