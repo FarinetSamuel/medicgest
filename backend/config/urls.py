@@ -14,6 +14,7 @@ urlpatterns = [
     path("api/v1/", include("apps.utilisateurs.urls")),
     path("api/v1/", include("apps.patients.urls")),
     path("api/v1/", include("apps.medicaments.urls")),
+    path("api/v1/", include("apps.prescriptions.urls")),
     # Authentification navigable (login/logout) pour l'API browsable DRF.
     path("api-auth/", include("rest_framework.urls")),
 ]
