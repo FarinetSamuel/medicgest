@@ -5,9 +5,42 @@ patients : suivi des prises, gestion du stock, alertes de réapprovisionnement,
 vérification des interactions médicamenteuses et export des données pour les
 professionnels de santé.
 
-> **Statut** : projet en développement — Palier 1 (socle : authentification,
-> patients, référentiel médicaments) en cours. Voir [`docs/`](./docs) pour le
-> détail des paliers à venir.
+> **Statut** : projet en développement actif — Paliers 1 (socle), 2 (suivi
+> des prises) et 3 (stock) terminés et testés (79 tests automatisés). Palier 4
+> (notifications) à venir. Voir [`docs/`](./docs) et la feuille de route
+> ci-dessous pour le détail.
+
+## ⚠️ Avertissement — À lire avant toute utilisation
+
+**Ce logiciel est un projet personnel/communautaire en développement, sans
+certification médicale ni validation clinique.** Il n'est ni un dispositif
+médical, ni un service certifié pour un usage professionnel de santé en
+l'état.
+
+- **Aucune garantie n'est fournie**, explicite ou implicite, quant à
+  l'exactitude, la fiabilité ou l'exhaustivité des informations produites par
+  l'application (y compris les alertes de stock, les rappels de prise, les
+  calculs de dosage ou toute future vérification d'interactions
+  médicamenteuses).
+- **L'utilisation se fait entièrement aux risques et périls de
+  l'utilisateur.** En cas de bug, d'erreur d'affichage, de calcul incorrect
+  ou de dysfonctionnement, ni les auteurs ni les contributeurs du projet ne
+  pourront être tenus responsables des conséquences, y compris en matière de
+  santé.
+- **Ce logiciel ne remplace en aucun cas l'avis, le suivi ou les
+  prescriptions d'un professionnel de santé.** Ne jamais modifier un
+  traitement, un dosage ou un horaire de prise sur la seule base d'une
+  information affichée par l'application, sans confirmation d'un médecin ou
+  d'un pharmacien.
+- En cas de doute sur un médicament, un dosage ou une interaction, consultez
+  toujours un professionnel de santé ou les sources officielles (BDPM, ANSM,
+  votre pharmacien).
+- Voir aussi la licence [MIT](./LICENSE), qui inclut une clause de
+  non-garantie standard ("AS IS").
+
+Cette limitation de responsabilité s'applique à l'ensemble du logiciel,
+présent et futur, y compris les modules de vérification d'interactions
+médicamenteuses qui seront ajoutés ultérieurement.
 
 ## Fonctionnalités visées
 
@@ -51,7 +84,8 @@ cp .env.example .env        # puis adapter les valeurs si besoin
 docker compose up --build
 ```
 
-L'API est ensuite disponible sur `http://localhost:8000`.
+L'API est ensuite disponible sur `http://localhost:8000` (adaptez le port si
+vous l'avez modifié dans `docker-compose.yml`).
 
 Pour appliquer les migrations et créer un compte administrateur :
 
@@ -74,33 +108,77 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+### Lancer les tests
+
+```bash
+python manage.py test
+```
+
 ## Import du référentiel médicaments (BDPM)
 
 Le référentiel des médicaments n'est jamais saisi manuellement : il est
 importé depuis les fichiers officiels de la BDPM
-(https://base-donnees-publique.medicaments.gouv.fr/telechargement.php).
+(https://base-donnees-publique.medicaments.gouv.fr/telechargement.php,
+section « Téléchargement »).
+
+Téléchargez au moins `CIS_bdpm.txt` (spécialités) et, pour obtenir le
+dosage, `CIS_COMPO_bdpm.txt` (compositions) :
 
 ```bash
-python manage.py import_bdpm --fichier /chemin/vers/CIS_bdpm.txt
+python manage.py import_bdpm --fichier ./CIS_bdpm.txt --fichier-composition ./CIS_COMPO_bdpm.txt
 ```
+
+La commande est idempotente (relancer met à jour sans dupliquer) et continue
+sur les lignes suivantes en cas de ligne malformée, avec un rapport d'erreurs
+en fin d'exécution.
+
+> **Limitation connue** : le code ATC n'est pas renseigné par cet import — il
+> n'est disponible dans les fichiers en téléchargement libre que pour le
+> sous-ensemble des médicaments d'intérêt thérapeutique majeur (MITM), non
+> encore importé.
+
+## Fonctionnement du suivi des prises et du stock (paliers 2 et 3)
+
+- Chaque **prescription** est soit **régulière** (horaires fixes, via
+  `HoraireProgramme`) soit **réserve** (usage ponctuel, avec un plafond
+  journalier optionnel).
+- Pour les prescriptions régulières, les prises attendues des prochains
+  jours sont **générées à l'avance** :
+  ```bash
+  python manage.py generer_prises_attendues --jours 30
+  ```
+  À exécuter régulièrement (cron quotidien recommandé — automatisation
+  prévue au palier 4).
+- Chaque prise enregistrée avec le statut `prise` **décrémente
+  automatiquement** le stock (boîtes actives, épuisement de la boîte qui
+  périme le plus tôt en premier). Un patient peut librement corriger ou
+  supprimer une prise déjà enregistrée : le stock est réajusté en
+  conséquence.
+- Le stock déclenche une alerte (`en_alerte`) sur un seuil de quantité
+  restante et/ou sur un nombre de jours restants estimé à partir de la
+  consommation réelle récente.
 
 ## Exemples d'utilisation
 
-- **Administrateur** : se connecte via `/admin`, crée les comptes médecins et
-  supervise l'ensemble des patients.
-- **Médecin** : consulte et met à jour les dossiers des patients qu'il suit,
-  ajoute des notes médicales structurées (allergies, antécédents).
-- **Patient** : consulte son propre dossier, son planning de prises et ses
-  alertes de stock une fois les paliers suivants disponibles.
+- **Administrateur** : se connecte via `/admin`, crée les comptes, importe le
+  référentiel médicaments, supervise l'ensemble des patients.
+- **Médecin** : crée un patient (devient automatiquement son médecin
+  suiveur), rédige ses prescriptions, consulte le journal de consommation et
+  le stock des patients qu'il suit.
+- **Patient** : consulte son propre dossier et ses prescriptions, enregistre
+  librement ses prises et gère son propre stock de boîtes.
+
+L'API est consultable et utilisable directement via l'interface navigable de
+Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
 
 ## Feuille de route (paliers)
 
-1. ✅ En cours — Socle : auth, rôles, patients, référentiel médicaments
-2. Suivi : prescriptions, prises programmées, journal de consommation
-3. Stock : boîtes, quantités, alertes de réapprovisionnement
-4. Notifications : e-mail, in-app, SMS
-5. Vérification des interactions médicamenteuses (thésaurus ANSM)
-6. Exports (PDF/Excel) et finitions UX (tableau de bord, thème clair/sombre)
+1. ✅ Terminé — Socle : auth, rôles, patients, référentiel médicaments (import BDPM)
+2. ✅ Terminé — Suivi : prescriptions, prises programmées, journal de consommation
+3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
+4. ⏳ À venir — Notifications : e-mail, in-app, SMS
+5. ⏳ À venir — Vérification des interactions médicamenteuses (thésaurus ANSM)
+6. ⏳ À venir — Exports (PDF/Excel) et finitions UX (frontend, tableau de bord, thème clair/sombre)
 
 Le détail de chaque palier est documenté dans [`docs/`](./docs).
 
@@ -112,8 +190,11 @@ pour le processus (organisation par palier, style de code, Pull Requests).
 ## Licence
 
 Ce projet est distribué sous licence [MIT](./LICENSE) — libre d'utilisation,
-de modification et de redistribution.
+de modification et de redistribution, **fournie "telle quelle", sans
+garantie d'aucune sorte** (voir l'avertissement en début de document et le
+texte complet de la licence).
 
 ## Contributeurs
 
 - *(à compléter au fil des contributions)*
+
