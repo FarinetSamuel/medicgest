@@ -6,9 +6,9 @@ vérification des interactions médicamenteuses et export des données pour les
 professionnels de santé.
 
 > **Statut** : projet en développement actif — Paliers 1 (socle), 2 (suivi
-> des prises) et 3 (stock) terminés et testés (79 tests automatisés). Palier 4
-> (notifications) à venir. Voir [`docs/`](./docs) et la feuille de route
-> ci-dessous pour le détail.
+> des prises), 3 (stock) et 4 (notifications) terminés et testés (90 tests
+> automatisés). Palier 5 (interactions médicamenteuses) à venir. Voir
+> [`docs/`](./docs) et la feuille de route ci-dessous pour le détail.
 
 ## ⚠️ Avertissement — À lire avant toute utilisation
 
@@ -158,6 +158,27 @@ en fin d'exécution.
   restante et/ou sur un nombre de jours restants estimé à partir de la
   consommation réelle récente.
 
+## Notifications (palier 4)
+
+Trois canaux, à des degrés de maturité différents :
+
+| Canal | État |
+|---|---|
+| **E-mail** | Fonctionnel. Backend "console" en développement (les e-mails s'affichent dans les logs) ; à remplacer par un vrai SMTP en production. |
+| **In-app** | Fonctionnel. Consultable via `/api/v1/notifications/`, marquable comme lue (`PATCH` avec `statut: "lue"`). |
+| **SMS** | Interface prête mais **désactivée** (`SMS_BACKEND_ACTIVE=False`) : aucun fournisseur (Twilio, OVHcloud SMS...) n'est configuré, faute de compte payant. Une notification SMS est explicitement marquée en échec plutôt que faussement "envoyée" — voir `apps/notifications/canaux.py` pour le point d'extension. |
+
+Deux commandes à exécuter régulièrement (cron recommandé, Celery Beat en
+alternative future) :
+
+```bash
+# Toutes les 5 à 15 minutes : rappels de prise à venir
+python manage.py envoyer_rappels_prises --fenetre-minutes 15
+
+# Une fois par jour : alertes de stock bas
+python manage.py verifier_alertes_stock --delai-relance-heures 24
+```
+
 ## Exemples d'utilisation
 
 - **Administrateur** : se connecte via `/admin`, crée les comptes, importe le
@@ -176,7 +197,7 @@ Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
 1. ✅ Terminé — Socle : auth, rôles, patients, référentiel médicaments (import BDPM)
 2. ✅ Terminé — Suivi : prescriptions, prises programmées, journal de consommation
 3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
-4. ⏳ À venir — Notifications : e-mail, in-app, SMS
+4. ✅ Terminé — Notifications : e-mail et in-app fonctionnels ; SMS en attente d'un fournisseur
 5. ⏳ À venir — Vérification des interactions médicamenteuses (thésaurus ANSM)
 6. ⏳ À venir — Exports (PDF/Excel) et finitions UX (frontend, tableau de bord, thème clair/sombre)
 

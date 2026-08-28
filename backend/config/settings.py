@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "apps.medicaments",
     "apps.prescriptions",
     "apps.stock",
+    "apps.notifications",
 ]
 
 MIDDLEWARE = [
@@ -108,3 +109,12 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@gestion-medicaments.local")
+
+# SMS : désactivé tant qu'aucun fournisseur (Twilio, OVHcloud SMS...) n'est
+# configuré avec de vrais identifiants — voir apps/notifications/canaux.py.
+SMS_BACKEND_ACTIVE = env.bool("SMS_BACKEND_ACTIVE", default=False)
+
+# Fenêtre par défaut (minutes) avant l'heure prévue d'une prise régulière
+# pour déclencher un rappel — voir apps/notifications/logique.py.
+RAPPEL_PRISE_FENETRE_MINUTES = env.int("RAPPEL_PRISE_FENETRE_MINUTES", default=15)
