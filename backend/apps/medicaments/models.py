@@ -3,6 +3,30 @@ import uuid
 from django.db import models
 
 
+class SubstanceActive(models.Model):
+    """
+    Substance active (principe actif), normalisée pour permettre le
+    croisement avec les protagonistes du Thésaurus des interactions
+    (apps.interactions), qui raisonne en substances/classes, pas en noms
+    commerciaux de médicaments.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nom = models.CharField(max_length=255, unique=True, help_text="Nom normalisé en MAJUSCULES.")
+
+    class Meta:
+        verbose_name = "Substance active"
+        verbose_name_plural = "Substances actives"
+        ordering = ["nom"]
+
+    def __str__(self):
+        return self.nom
+
+    def save(self, *args, **kwargs):
+        self.nom = self.nom.strip().upper()
+        super().save(*args, **kwargs)
+
+
 class Medicament(models.Model):
     """
     Référentiel des médicaments.
@@ -33,6 +57,13 @@ class Medicament(models.Model):
         blank=True,
         help_text="Classification anatomique, thérapeutique et chimique — "
         "utile pour le futur module de vérification des interactions.",
+    )
+    substances_actives = models.ManyToManyField(
+        SubstanceActive,
+        blank=True,
+        related_name="medicaments",
+        help_text="Renseigné par import_bdpm --fichier-composition. "
+        "Utilisé par apps.interactions pour croiser avec le Thésaurus ANSM.",
     )
     source = models.CharField(max_length=20, default="BDPM", editable=False)
     date_import = models.DateTimeField(auto_now=True)

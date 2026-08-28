@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "apps.prescriptions",
     "apps.stock",
     "apps.notifications",
+    "apps.interactions",
 ]
 
 MIDDLEWARE = [

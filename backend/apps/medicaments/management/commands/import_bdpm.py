@@ -28,7 +28,7 @@ from collections import defaultdict
 
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.medicaments.models import Medicament
+from apps.medicaments.models import Medicament, SubstanceActive
 
 # Index des colonnes dans CIS_bdpm.txt (0-indexé), confirmés par la
 # documentation officielle ANSM v3 (18/12/2024), section 3.1.
@@ -61,9 +61,12 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        substances_par_cis = {}
         dosages_par_cis = {}
         if options.get("fichier_composition"):
-            dosages_par_cis = self._lire_dosages(options["fichier_composition"])
+            substances_par_cis, dosages_par_cis = self._lire_composition(
+                options["fichier_composition"]
+            )
 
         lignes = self._lire_fichier(options["fichier"])
 
@@ -76,7 +79,7 @@ class Command(BaseCommand):
 
             code_cis = champs[COL_CIS_CODE_CIS].strip()
             try:
-                _, cree = Medicament.objects.update_or_create(
+                medicament, cree = Medicament.objects.update_or_create(
                     code_cis=code_cis,
                     defaults={
                         "denomination": champs[COL_CIS_DENOMINATION].strip()[:255],
@@ -85,6 +88,14 @@ class Command(BaseCommand):
                         "dosage": dosages_par_cis.get(code_cis, "")[:500],
                     },
                 )
+                noms_substances = substances_par_cis.get(code_cis, [])
+                if noms_substances:
+                    objets_substances = []
+                    for nom in noms_substances:
+                        substance, _ = SubstanceActive.objects.get_or_create(nom=nom.upper())
+                        objets_substances.append(substance)
+                    medicament.substances_actives.set(objets_substances)
+
                 crees += int(cree)
                 mis_a_jour += int(not cree)
             except Exception as exc:  # noqa: BLE001 — on veut continuer sur les autres lignes
@@ -118,13 +129,21 @@ class Command(BaseCommand):
             raise CommandError(f"Impossible de lire le fichier {chemin} : {exc}")
 
     def _lire_dosages(self, chemin):
+        substances_par_cis, dosages_par_cis = self._lire_composition(chemin)
+        return dosages_par_cis
+
+    def _lire_composition(self, chemin):
         """
-        Construit {code_cis: dosage_lisible} à partir de CIS_COMPO_bdpm.txt.
-        Un médicament peut avoir plusieurs substances actives (SA) : leurs
-        dosages sont concaténés avec ' + ', jamais moyennés ou choisis
-        arbitrairement — l'information complète est conservée.
+        Construit deux dictionnaires à partir de CIS_COMPO_bdpm.txt :
+        - {code_cis: dosage_lisible} (texte concaténé, pour affichage)
+        - {code_cis: [noms de substances actives]} (pour lier
+          Medicament.substances_actives, utilisé par apps.interactions)
+
+        Un médicament peut avoir plusieurs substances actives (SA) : elles
+        sont toutes conservées, jamais moyennées ou choisies arbitrairement.
         """
         substances_par_cis = defaultdict(list)
+        noms_par_cis = defaultdict(list)
         for ligne in self._lire_fichier(chemin):
             champs = ligne.rstrip("\n").split("\t")
             if len(champs) <= COL_COMPO_NATURE_COMPOSANT:
@@ -136,8 +155,10 @@ class Command(BaseCommand):
             substance = champs[COL_COMPO_DENOMINATION_SUBSTANCE].strip()
             dosage = champs[COL_COMPO_DOSAGE].strip()
             substances_par_cis[code_cis].append(f"{substance} {dosage}".strip())
+            noms_par_cis[code_cis].append(substance)
 
-        return {
+        dosages_par_cis = {
             code_cis: " + ".join(substances)
             for code_cis, substances in substances_par_cis.items()
         }
+        return dict(noms_par_cis), dosages_par_cis

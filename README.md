@@ -179,6 +179,59 @@ python manage.py envoyer_rappels_prises --fenetre-minutes 15
 python manage.py verifier_alertes_stock --delai-relance-heures 24
 ```
 
+## Vérification des interactions médicamenteuses (palier 5)
+
+⚠️ **Point critique à comprendre avant d'activer cette fonctionnalité** :
+l'ANSM a **arrêté la mise à jour** du Thésaurus des interactions
+médicamenteuses. La version importée ici (15/09/2023) est la **dernière
+publiée et ne sera plus jamais actualisée par l'ANSM**. Le Thésaurus reste
+accessible sur son site jusqu'au 15/06/2027, sans garantie d'exhaustivité
+par rapport aux RCP (résumés des caractéristiques du produit) actuels, qui
+sont désormais la seule référence officiellement opposable.
+
+Il n'existe, à ce jour, aucune base d'interactions française à la fois
+gratuite, structurée et activement maintenue (Thériaque et Vidal, agréées
+HAS, nécessitent une licence commerciale payante pour une intégration
+logicielle).
+
+### Ce qui est importé, et ce qui ne l'est pas
+
+- Seules les entrées à **niveau de gravité non ambigu** sont importées
+  automatiquement (`InteractionMedicamenteuse`).
+- Les entrées à **niveau conditionnel** selon la dose ou le contexte
+  clinique (codes composés type `CI - ASDEC - APEC`) sont volontairement
+  **exclues** de l'import automatique et conservées à part
+  (`InteractionNonImportee`) pour une revue manuelle — jamais de niveau
+  deviné.
+- La correspondance entre les médicaments prescrits et les protagonistes
+  du Thésaurus se fait par **nom de substance active exact**. Les
+  interactions définies au niveau d'une **classe thérapeutique** (ex.
+  "INDUCTEURS ENZYMATIQUES PUISSANTS") ne sont pas résolues vers leurs
+  substances membres dans cette version — donc pas détectées
+  automatiquement dans ce cas.
+
+### Importer le Thésaurus
+
+```bash
+# 1. Télécharger le PDF officiel depuis ansm.sante.fr
+#    (rechercher "Thésaurus des interactions médicamenteuses")
+
+# 2. Le convertir en texte en conservant la mise en page
+pdftotext -layout thesaurus.pdf thesaurus.txt
+
+# 3. Importer
+python manage.py import_thesaurus --fichier thesaurus.txt
+```
+
+### Vérifier les interactions d'un patient
+
+```
+GET /api/v1/patients/<id>/verifier-interactions/
+```
+
+La réponse inclut systématiquement un champ `avertissement` rappelant la
+date de fige du Thésaurus — jamais uniquement documenté à part.
+
 ## Exemples d'utilisation
 
 - **Administrateur** : se connecte via `/admin`, crée les comptes, importe le
@@ -198,7 +251,7 @@ Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
 2. ✅ Terminé — Suivi : prescriptions, prises programmées, journal de consommation
 3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
 4. ✅ Terminé — Notifications : e-mail et in-app fonctionnels ; SMS en attente d'un fournisseur
-5. ⏳ À venir — Vérification des interactions médicamenteuses (thésaurus ANSM)
+5. ✅ Terminé — Vérification des interactions médicamenteuses (Thésaurus ANSM, figé depuis sept. 2023 — voir avertissement ci-dessus)
 6. ⏳ À venir — Exports (PDF/Excel) et finitions UX (frontend, tableau de bord, thème clair/sombre)
 
 Le détail de chaque palier est documenté dans [`docs/`](./docs).

@@ -1,0 +1,96 @@
+THESAURUS
+DES INTÉRACTIONS MÉDICAMENTEUSES
+AOÛT 2023
+2
+ABATACEPT
++ ANTI-TNF ALPHA
+Majoration de l'immunodépression. Association DECONSEILLEE
++ VACCINS VIVANTS ATTÉNUÉS
+Association DECONSEILLEE
+ainsi que pendant les 3 mois suivant l'arrêt du traitement.
+Risque de maladie vaccinale généralisée, éventuellement mortelle.
+ABIRATERONE
+Voir aussi : médicaments à l'origine d'un hypogonadisme masculin
++ INDUCTEURS ENZYMATIQUES PUISSANTS
+Diminution notable des concentrations plasmatiques de Association DECONSEILLEE
+l'abiratérone, avec risque de moindre efficacité.
++ METOPROLOL
+Précaution d'emploi
+Surveillance clinique. Si besoin, adaptation de la posologie du
+métoprolol pendant le traitement par l'abiratérone.
+Chez l'insuffisant cardiaque, risque d'augmentation des effets
+indésirables du métoprolol, par diminution de son métabolisme
+hépatique par l'abiratérone.
+ACIDE ACETYLSALICYLIQUE
+Voir aussi : antiagrégants plaquettaires - substances à absorption réduite par les topiques gastro-intestinaux, antiacides et adsorbants
++ ACETAZOLAMIDE
+Majoration des effets indésirables, et notamment de l'acidose Association DECONSEILLEE
+métabolique, de l'acide acétylsalicylique à doses élevées et de
+l'acétazolamide, par diminution de l'élimination de l'acide
+acétylsalicylique par l'acétazolamide.
++ ANTICOAGULANTS ORAUX
+CI - ASDEC - APEC
+Contre-indication avec :
+- des doses anti-inflammatoires d'acide acétylsalicylique (>=1g par prise
+et/ou >=3g par jour)
+Association déconseillée avec :
+- des doses antalgiques ou antipyrétiques (>=500 mg par prise et/ou
+<3g par jour)
+A prendre en compte avec :
+- des doses antiagrégantes (de 50 mg à 375 mg par jour)
+Majoration du risque hémorragique, notamment en cas
+d'antécédent d'ulcère gastro-duodénal.
++ METHOTREXATE
+CI - PE
+Avec le méthotrexate utilisé à des doses > 20 mg/semaine :
+- contre-indication avec l'acide acétylsalicylique
+Avec le méthotrexate utilisé à des doses =< 20 mg/semaine :
+- précaution d'emploi
+Majoration de la toxicité, notamment hématologique, du
+méthotrexate.
+ACIDE FUSIDIQUE
++ INHIBITEURS DE L'HMG-COA RÉDUCTASE (STATINES)
+CONTRE-INDICATION
+Arrêter le traitement par l'inhibiteur de l'HMG Co-A
+réductase avant d'initier un traitement par acide fusidique ou utiliser un
+autre antibiotique.
+Risque majoré d'effets indésirables (concentration-dépendants) à
+type de rhabdomyolyse.
+ALLOPURINOL
+Voir aussi : inhibiteurs de la xanthine oxydase
++ ANTIVITAMINES K
+Précaution d'emploi
+Contrôle plus fréquent de l'INR. Adaptation éventuelle de la posologie
+de l'antivitamine K pendant le traitement par l'allopurinol et 8 jours après
+son arrêt.
+Augmentation du risque hémorragique.
++ DIDANOSINE
+Augmentation des concentrations plasmatiques de didanosine et Association DECONSEILLEE
+de ses effets indésirables.
++ PÉNICILLINES A
+Risque accru de réactions cutanées. A prendre en compte
+AMIODARONE
+Voir aussi : antiarythmiques - bradycardisants
++ ANTIVITAMINES K
+Précaution d'emploi
+Contrôle plus fréquent de l'INR. Adaptation éventuelle de la posologie
+de l'antivitamine K pendant le traitement par l'amiodarone et jusqu'à 4
+semaines après son arrêt.
+Augmentation de l'effet de l'antivitamine K et du risque
+hémorragique.
++ SIMVASTATINE
+Précaution d'emploi
+Ne pas dépasser la posologie de 20 mg/j de simvastatine ou utiliser une
+autre statine non concernée par ce type d'interaction.
+Risque majoré d'effets indésirables (concentration-dépendants) à
+type de rhabdomyolyse.
+ATORVASTATINE
+Voir aussi : inhibiteurs de l'HMG-CoA réductase (statines)
++ ITRACONAZOLE
+Risque majoré d'effets indésirables (concentration-dépendants) à CONTRE-INDICATION
+type de rhabdomyolyse (diminution du métabolisme hépatique de
+l'atorvastatine).
++ PAMPLEMOUSSE (JUS ET FRUIT)
+Augmentation des concentrations plasmatiques de l'hypolipémiant, A prendre en compte
+avec risque de survenue d'effets indésirables, notamment
+musculaires.
