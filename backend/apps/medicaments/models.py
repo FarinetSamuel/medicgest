@@ -20,8 +20,13 @@ class Medicament(models.Model):
         help_text="Code Identifiant de Spécialité officiel (BDPM).",
     )
     denomination = models.CharField(max_length=255)
-    forme_pharmaceutique = models.CharField(max_length=150, blank=True)
-    dosage = models.CharField(max_length=150, blank=True)
+    forme_pharmaceutique = models.CharField(max_length=255, blank=True)
+    dosage = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Concaténation de toutes les substances actives (SA) et leur dosage — "
+        "peut être long pour les médicaments combinant plusieurs substances.",
+    )
     laboratoire = models.CharField(max_length=255, blank=True)
     code_atc = models.CharField(
         max_length=10,

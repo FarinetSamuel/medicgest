@@ -67,30 +67,39 @@ class Command(BaseCommand):
 
         lignes = self._lire_fichier(options["fichier"])
 
-        crees, mis_a_jour, ignorees = 0, 0, 0
-        for ligne in lignes:
+        crees, mis_a_jour, ignorees, erreurs = 0, 0, 0, 0
+        for numero_ligne, ligne in enumerate(lignes, start=1):
             champs = ligne.rstrip("\n").split("\t")
             if len(champs) <= COL_CIS_TITULAIRES:
                 ignorees += 1
                 continue
 
             code_cis = champs[COL_CIS_CODE_CIS].strip()
-            _, cree = Medicament.objects.update_or_create(
-                code_cis=code_cis,
-                defaults={
-                    "denomination": champs[COL_CIS_DENOMINATION].strip(),
-                    "forme_pharmaceutique": champs[COL_CIS_FORME_PHARMA].strip(),
-                    "laboratoire": champs[COL_CIS_TITULAIRES].strip(),
-                    "dosage": dosages_par_cis.get(code_cis, ""),
-                },
-            )
-            crees += int(cree)
-            mis_a_jour += int(not cree)
+            try:
+                _, cree = Medicament.objects.update_or_create(
+                    code_cis=code_cis,
+                    defaults={
+                        "denomination": champs[COL_CIS_DENOMINATION].strip()[:255],
+                        "forme_pharmaceutique": champs[COL_CIS_FORME_PHARMA].strip()[:255],
+                        "laboratoire": champs[COL_CIS_TITULAIRES].strip()[:255],
+                        "dosage": dosages_par_cis.get(code_cis, "")[:500],
+                    },
+                )
+                crees += int(cree)
+                mis_a_jour += int(not cree)
+            except Exception as exc:  # noqa: BLE001 — on veut continuer sur les autres lignes
+                erreurs += 1
+                self.stderr.write(
+                    self.style.ERROR(
+                        f"Ligne {numero_ligne} (CIS {code_cis}) ignorée : {exc}"
+                    )
+                )
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Import terminé : {crees} créé(s), {mis_a_jour} mis à jour, "
-                f"{ignorees} ligne(s) ignorée(s) (format inattendu)."
+                f"{ignorees} ligne(s) ignorée(s) (format inattendu), "
+                f"{erreurs} erreur(s) (voir détail ci-dessus)."
             )
         )
         if not options.get("fichier_composition"):
