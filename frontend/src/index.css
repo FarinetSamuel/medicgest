@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Palette "clinique sobre" — teal profond plutôt que les tons
+     terracotta/near-black+néon devenus des défauts génériques. */
+  --color-brand-50: #eef7f5;
+  --color-brand-100: #d6ece7;
+  --color-brand-300: #7bbdb0;
+  --color-brand-500: #0f6b62;
+  --color-brand-600: #0c554e;
+  --color-brand-700: #0a4740;
+
+  --color-surface-light: #ffffff;
+  --color-bg-light: #f6f8f7;
+  --color-border-light: #dce4e1;
+  --color-text-light: #16211f;
+  --color-muted-light: #5b6e6a;
+
+  --color-surface-dark: #142524;
+  --color-bg-dark: #0c1615;
+  --color-border-dark: #24413d;
+  --color-text-dark: #e7eeec;
+  --color-muted-dark: #92a8a3;
+
+  --color-warning: #d98c2b;
+  --color-warning-bg: #fdf1e1;
+  --color-danger: #c4392b;
+  --color-danger-bg: #fbe9e7;
+  --color-success: #2f8f5b;
+  --color-success-bg: #e8f5ee;
+
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg-light);
+  color: var(--color-text-light);
+}
+.dark body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-dark);
+}
+
+/* Focus clavier visible partout — accessibilité non négociable. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

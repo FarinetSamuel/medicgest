@@ -18,11 +18,22 @@ services:
     volumes:
       - ./backend:/app
     ports:
-      - "8077:8000"
+      - "8000:8000"
     env_file:
       - .env
     depends_on:
       - db
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: unless-stopped
+    ports:
+      - "8078:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
