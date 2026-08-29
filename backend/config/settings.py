@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "apps.stock",
     "apps.notifications",
     "apps.interactions",
+    "apps.exports",
 ]
 
 MIDDLEWARE = [

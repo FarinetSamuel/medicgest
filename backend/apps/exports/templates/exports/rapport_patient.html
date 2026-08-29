@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: A4; margin: 2cm; @bottom-center { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #666; } }
+    body { font-family: "Liberation Sans", Arial, sans-serif; font-size: 11px; color: #1a1a1a; }
+    h1 { font-size: 18px; border-bottom: 2px solid #2c5f8a; padding-bottom: 6px; margin-bottom: 4px; }
+    h2 { font-size: 13px; color: #2c5f8a; margin-top: 22px; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
+    .sous-titre { color: #555; font-size: 10px; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+    th { background: #eef3f7; text-align: left; padding: 5px 6px; font-size: 9.5px; border-bottom: 1px solid #ccc; }
+    td { padding: 5px 6px; font-size: 9.5px; border-bottom: 1px solid #eee; }
+    .niveau-contre_indication { color: #b00020; font-weight: bold; }
+    .niveau-association_deconseillee { color: #c26200; font-weight: bold; }
+    .niveau-precaution_emploi { color: #8a6d00; }
+    .niveau-a_prendre_en_compte { color: #555; }
+    .alerte { color: #b00020; font-weight: bold; }
+    .avertissement { background: #fff4e5; border: 1px solid #e0a94b; padding: 10px 12px; font-size: 9.5px; margin-top: 24px; }
+    .vide { color: #888; font-style: italic; }
+</style>
+</head>
+<body>
+    <h1>Rapport patient — {{ patient.utilisateur.get_full_name }}</h1>
+    <div class="sous-titre">
+        Dossier {{ patient.numero_dossier }} — généré le {{ date_generation|date:"d/m/Y à H:i" }}
+    </div>
+
+    <h2>Prescriptions actives</h2>
+    {% if prescriptions_actives %}
+    <table>
+        <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Prescripteur</th><th>Depuis le</th></tr>
+        {% for p in prescriptions_actives %}
+        <tr>
+            <td>{{ p.medicament.denomination }}</td>
+            <td>{{ p.get_type_prise_display }}</td>
+            <td>{{ p.dose_quantite }} {{ p.dose_unite }}</td>
+            <td>{{ p.medecin_prescripteur.get_full_name }}</td>
+            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="vide">Aucune prescription active.</p>
+    {% endif %}
+
+    <h2>Interactions détectées</h2>
+    {% if interactions %}
+    <table>
+        <tr><th>Substance A</th><th>Substance B</th><th>Niveau</th><th>Détail</th></tr>
+        {% for i in interactions %}
+        <tr>
+            <td>{{ i.substance_a }} ({{ i.medicament_a }})</td>
+            <td>{{ i.substance_b }} ({{ i.medicament_b }})</td>
+            <td class="niveau-{{ i.niveau }}">{{ i.niveau }}</td>
+            <td>{{ i.libelle|truncatewords:25 }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="vide">Aucune interaction détectée entre les prescriptions actives.</p>
+    {% endif %}
+
+    <h2>Historique des prises ({{ fenetre_historique_jours }} derniers jours)</h2>
+    {% if historique_prises %}
+    <table>
+        <tr><th>Date/heure</th><th>Médicament</th><th>Quantité</th><th>Statut</th></tr>
+        {% for prise in historique_prises %}
+        <tr>
+            <td>{{ prise.date_heure_reelle|date:"d/m/Y H:i" }}</td>
+            <td>{{ prise.prescription.medicament.denomination }}</td>
+            <td>{{ prise.quantite_prise }}</td>
+            <td>{{ prise.get_statut_display }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="vide">Aucune prise enregistrée sur cette période.</p>
+    {% endif %}
+
+    <h2>Stock actuel</h2>
+    {% if boites_actives %}
+    <table>
+        <tr><th>Médicament</th><th>Restant</th><th>Péremption</th><th>Alerte</th></tr>
+        {% for boite in boites_actives %}
+        <tr>
+            <td>{{ boite.medicament.denomination }}</td>
+            <td>{{ boite.quantite_restante }} / {{ boite.quantite_initiale }}</td>
+            <td>{{ boite.date_peremption|date:"d/m/Y"|default:"—" }}</td>
+            <td>{% if boite.en_alerte %}<span class="alerte">Oui</span>{% else %}Non{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="vide">Aucune boîte active en stock.</p>
+    {% endif %}
+
+    <div class="avertissement">
+        ⚠️ Ce document est généré automatiquement à partir des données saisies dans l'application
+        et n'a pas de valeur médicale certifiée. La vérification des interactions s'appuie sur le
+        Thésaurus des interactions médicamenteuses de l'ANSM, dont la dernière version date du
+        15/09/2023 et n'est plus mise à jour. Ce rapport ne remplace en aucun cas l'avis d'un
+        professionnel de santé.
+    </div>
+</body>
+</html>

@@ -232,6 +232,23 @@ GET /api/v1/patients/<id>/verifier-interactions/
 La réponse inclut systématiquement un champ `avertissement` rappelant la
 date de fige du Thésaurus — jamais uniquement documenté à part.
 
+## Exports PDF / Excel (palier 6)
+
+Chaque patient dispose d'un rapport complet exportable, regroupant
+prescriptions actives, interactions détectées, historique des prises (30
+derniers jours) et stock actuel — mêmes permissions d'accès que la fiche
+patient elle-même (admin, médecin suiveur, ou le patient lui-même).
+
+```
+GET /api/v1/patients/<id>/export-pdf/
+GET /api/v1/patients/<id>/export-excel/
+```
+
+Générés respectivement avec **WeasyPrint** (HTML → PDF) et **openpyxl**
+(classeur à 4 feuilles). L'avertissement sur la fraîcheur des données
+d'interactions (Thésaurus ANSM figé depuis sept. 2023) est repris dans le
+PDF, pas seulement dans l'API.
+
 ## Exemples d'utilisation
 
 - **Administrateur** : se connecte via `/admin`, crée les comptes, importe le
@@ -252,7 +269,7 @@ Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
 3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
 4. ✅ Terminé — Notifications : e-mail et in-app fonctionnels ; SMS en attente d'un fournisseur
 5. ✅ Terminé — Vérification des interactions médicamenteuses (Thésaurus ANSM, figé depuis sept. 2023 — voir avertissement ci-dessus)
-6. ⏳ À venir — Exports (PDF/Excel) et finitions UX (frontend, tableau de bord, thème clair/sombre)
+6. 🔶 En cours — Exports PDF/Excel ✅ terminés ; frontend React, tableau de bord et thème clair/sombre à venir
 
 Le détail de chaque palier est documenté dans [`docs/`](./docs).
 
