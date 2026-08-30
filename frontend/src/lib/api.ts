@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { PageResultat } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api/v1";
 
@@ -71,3 +72,26 @@ api.interceptors.response.use(
     return Promise.reject(erreur);
   }
 );
+
+/**
+ * Parcourt toutes les pages d'un endpoint DRF paginé (PAGE_SIZE=25 côté
+ * backend, aucun paramètre de recherche disponible sur la plupart des
+ * endpoints) et retourne la liste complète.
+ *
+ * Plafonné à 10 pages (250 éléments) pour éviter une boucle incontrôlée si
+ * un endpoint venait à retourner un volume anormal — au-delà, un vrai
+ * paramètre de recherche/filtre côté backend deviendrait nécessaire plutôt
+ * que de tout charger côté client.
+ */
+export async function recupererToutesPages<T>(urlInitiale: string): Promise<T[]> {
+  let url: string | null = urlInitiale;
+  const tout: T[] = [];
+  let pages = 0;
+  while (url && pages < 10) {
+    const { data }: { data: PageResultat<T> } = await api.get<PageResultat<T>>(url);
+    tout.push(...data.results);
+    url = data.next;
+    pages += 1;
+  }
+  return tout;
+}

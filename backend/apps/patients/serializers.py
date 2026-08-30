@@ -30,6 +30,8 @@ class PatientMedecinSerializer(serializers.ModelSerializer):
 
 class PatientSerializer(serializers.ModelSerializer):
     utilisateur_email = serializers.EmailField(source="utilisateur.email", read_only=True)
+    utilisateur_prenom = serializers.CharField(source="utilisateur.first_name", read_only=True)
+    utilisateur_nom = serializers.CharField(source="utilisateur.last_name", read_only=True)
     notes_medicales = NoteMedicaleSerializer(many=True, read_only=True)
 
     class Meta:
@@ -38,6 +40,8 @@ class PatientSerializer(serializers.ModelSerializer):
             "id",
             "utilisateur",
             "utilisateur_email",
+            "utilisateur_prenom",
+            "utilisateur_nom",
             "numero_dossier",
             "date_naissance",
             "sexe",

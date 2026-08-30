@@ -31,6 +31,9 @@ class PatientAPIPermissionsTest(APITestCase):
         self.medecin_b = creer_utilisateur_avec_role("medecin.b@example.com", ROLE_MEDECIN)
 
         self.user_patient_1 = creer_utilisateur_avec_role("patient1@example.com", ROLE_PATIENT)
+        self.user_patient_1.first_name = "Camille"
+        self.user_patient_1.last_name = "Martin"
+        self.user_patient_1.save()
         self.patient_1 = Patient.objects.create(
             utilisateur=self.user_patient_1,
             numero_dossier="DOS-API-1",
@@ -67,6 +70,16 @@ class PatientAPIPermissionsTest(APITestCase):
         response = self.client.get("/api/v1/patients/")
         dossiers = {p["numero_dossier"] for p in response.data["results"]}
         self.assertEqual(dossiers, {"DOS-API-1", "DOS-API-2"})
+
+    def test_serialisation_expose_prenom_nom_patient(self):
+        """
+        Le frontend a besoin du prénom/nom du patient (pas seulement de son
+        email) pour l'afficher dans la liste et la fiche détail.
+        """
+        self.client.force_authenticate(self.admin)
+        response = self.client.get(f"/api/v1/patients/{self.patient_1.id}/")
+        self.assertEqual(response.data["utilisateur_prenom"], "Camille")
+        self.assertEqual(response.data["utilisateur_nom"], "Martin")
 
     def test_medecin_voit_seulement_ses_patients_suivis(self):
         self.client.force_authenticate(self.medecin_a)

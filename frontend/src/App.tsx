@@ -6,6 +6,7 @@ import { RouteProtegee } from "./components/RouteProtegee";
 import { Layout } from "./components/Layout";
 import { Connexion } from "./pages/Connexion";
 import { Dashboard } from "./pages/Dashboard";
+import { Patients } from "./pages/Patients";
 import { PageAVenir } from "./pages/PageAVenir";
 
 export default function App() {
@@ -24,7 +25,7 @@ export default function App() {
               }
             >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/patients" element={<PageAVenir titre="Patients" />} />
+              <Route path="/patients" element={<Patients />} />
               <Route path="/prescriptions" element={<PageAVenir titre="Prescriptions" />} />
               <Route path="/stock" element={<PageAVenir titre="Stock" />} />
               <Route path="/notifications" element={<PageAVenir titre="Notifications" />} />
