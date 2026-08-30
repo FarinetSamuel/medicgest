@@ -54,14 +54,15 @@ class PatientAPIPermissionsTest(APITestCase):
 
     def test_acces_anonyme_refuse(self):
         """
-        403, pas 401 : comportement standard de DRF quand
-        SessionAuthentication est en tête des authenticators — elle ne
-        fournit pas de challenge WWW-Authenticate, donc DRF « rétrograde »
-        NotAuthenticated (401) en PermissionDenied (403). Voir
-        rest_framework.views.APIView.handle_exception.
+        401, pas 403 : JWTAuthentication (ajoutée en tête des
+        DEFAULT_AUTHENTICATION_CLASSES pour le flux de connexion) fournit un
+        challenge WWW-Authenticate: Bearer, donc DRF renvoie NotAuthenticated
+        (401) tel quel au lieu de le « rétrograder » en PermissionDenied
+        (403) comme c'était le cas quand seule SessionAuthentication (sans
+        challenge) était en tête. Voir rest_framework.views.APIView.handle_exception.
         """
         response = self.client.get("/api/v1/patients/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     # --- Périmètre de visibilité par rôle (get_queryset) ---
 

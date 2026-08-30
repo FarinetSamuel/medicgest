@@ -1,9 +1,50 @@
 from django.contrib.auth.models import Group
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
 ROLES_VALIDES = (ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT)
+
+
+class ConnexionSerializer(TokenObtainPairSerializer):
+    """
+    Émission de jetons JWT (access + refresh) à la connexion.
+
+    TokenObtainPairSerializer construit déjà son champ d'identifiant à
+    partir de Utilisateur.USERNAME_FIELD ("email"), donc {"email": ...,
+    "password": ...} est accepté tel quel sans configuration supplémentaire.
+
+    Ajout nécessaire : le champ `actif` du modèle est un champ métier
+    distinct du `is_active` natif de Django (jamais mis à False ailleurs
+    dans le code) — sans cette vérification explicite, un compte désactivé
+    pourrait quand même se connecter.
+    """
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        if not self.user.actif:
+            raise serializers.ValidationError(
+                "Ce compte est désactivé.", code="compte_desactive"
+            )
+        return data
+
+
+class ProfilSerializer(serializers.ModelSerializer):
+    """Profil de l'utilisateur connecté, renvoyé par GET /auth/me/."""
+
+    prenom = serializers.CharField(source="first_name", read_only=True)
+    nom = serializers.CharField(source="last_name", read_only=True)
+    role = serializers.CharField(read_only=True)
+    patient_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Utilisateur
+        fields = ["id", "email", "prenom", "nom", "role", "patient_id"]
+
+    def get_patient_id(self, obj):
+        fiche = getattr(obj, "fiche_patient", None)
+        return str(fiche.id) if fiche else None
 
 
 class UtilisateurSerializer(serializers.ModelSerializer):

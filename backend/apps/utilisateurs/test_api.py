@@ -31,8 +31,10 @@ class UtilisateurAPIPermissionsTest(APITestCase):
     # --- Accès anonyme ---
 
     def test_liste_anonyme_refusee(self):
+        # 401, pas 403 : voir le commentaire détaillé dans
+        # apps/patients/test_api.py::test_acces_anonyme_refuse.
         response = self.client.get("/api/v1/utilisateurs/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)
 
     # --- Lecture (list) ---
 

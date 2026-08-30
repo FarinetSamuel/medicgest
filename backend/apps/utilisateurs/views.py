@@ -1,9 +1,31 @@
-from rest_framework import viewsets
+from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 from .permissions import EstAdmin, EstAdminOuMedecin
-from .serializers import UtilisateurCreationSerializer, UtilisateurSerializer
+from .serializers import (
+    ConnexionSerializer,
+    ProfilSerializer,
+    UtilisateurCreationSerializer,
+    UtilisateurSerializer,
+)
+
+
+class ConnexionView(TokenObtainPairView):
+    """POST /api/v1/auth/token/ — émission des jetons access/refresh."""
+
+    serializer_class = ConnexionSerializer
+
+
+class ProfilView(generics.RetrieveAPIView):
+    """GET /api/v1/auth/me/ — profil de l'utilisateur actuellement connecté."""
+
+    serializer_class = ProfilSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
 
 
 class UtilisateurViewSet(viewsets.ModelViewSet):

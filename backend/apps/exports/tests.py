@@ -157,5 +157,7 @@ class ExportAPITest(APITestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_anonyme_refuse(self):
+        # 401, pas 403 : voir le commentaire détaillé dans
+        # apps/patients/test_api.py::test_acces_anonyme_refuse.
         response = self.client.get(f"/api/v1/patients/{self.patient.id}/export-pdf/")
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 401)

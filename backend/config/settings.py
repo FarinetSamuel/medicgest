@@ -6,6 +6,7 @@ sont lues depuis les variables d'environnement via django-environ, jamais
 codées en dur — voir le fichier .env.example à la racine du dépôt.
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -88,6 +89,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
         # BasicAuthentication : pratique pour tester l'API en local (curl,
         # Postman) sans configurer de session. À retirer ou restreindre en
@@ -99,6 +101,15 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+}
+
+# Durées de vie volontairement explicites plutôt que de laisser les
+# valeurs par défaut de simplejwt (5 min / 1 jour) implicites — le
+# frontend gère déjà le rafraîchissement silencieux (voir lib/api.ts).
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": False,
 }
 
 LANGUAGE_CODE = "fr-fr"
