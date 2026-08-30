@@ -1,6 +1,7 @@
 Django==6.1
 djangorestframework==3.18.0
 djangorestframework-simplejwt==5.5.1
+django-cors-headers==4.9.0
 django-environ==0.14.0
 psycopg2-binary==2.9.12
 weasyprint==69.0

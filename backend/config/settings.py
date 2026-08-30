@@ -22,6 +22,13 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DEBUG")
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
+# Origines autorisées à appeler l'API depuis un navigateur (frontend React
+# servi séparément, cf. docker-compose.yml). Aucune valeur par défaut
+# risquée : liste vide tant que CORS_ALLOWED_ORIGINS n'est pas explicitement
+# renseigné dans le .env (voir .env.example), pour ne jamais ouvrir l'API
+# à une origine non voulue par accident.
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -31,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Tiers
     "rest_framework",
+    "corsheaders",
     # Applications métier
     "apps.utilisateurs",
     "apps.patients",
@@ -44,6 +52,10 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # CorsMiddleware doit être placé le plus haut possible, et en tout cas
+    # avant CommonMiddleware, pour pouvoir ajouter ses en-têtes avant
+    # qu'une autre réponse (y compris une erreur) ne soit générée.
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
