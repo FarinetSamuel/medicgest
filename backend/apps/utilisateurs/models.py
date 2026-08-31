@@ -22,11 +22,41 @@ class Utilisateur(AbstractUser):
     côté API/serializers.
     """
 
+    class Specialite(models.TextChoices):
+        GENERALE = "generale", "Médecine générale"
+        CARDIOLOGIE = "cardiologie", "Cardiologie"
+        DERMATOLOGIE = "dermatologie", "Dermatologie"
+        ENDOCRINOLOGIE = "endocrinologie", "Endocrinologie"
+        GASTROENTEROLOGIE = "gastroenterologie", "Gastro-entérologie"
+        GYNECOLOGIE = "gynecologie", "Gynécologie-obstétrique"
+        HEMATOLOGIE = "hematologie", "Hématologie"
+        NEUROLOGIE = "neurologie", "Neurologie"
+        ONCOLOGIE = "oncologie", "Oncologie"
+        OPHTALMOLOGIE = "ophtalmologie", "Ophtalmologie"
+        ORL = "orl", "ORL"
+        PEDIATRIE = "pediatrie", "Pédiatrie"
+        PNEUMOLOGIE = "pneumologie", "Pneumologie"
+        PSYCHIATRIE = "psychiatrie", "Psychiatrie"
+        RHUMATOLOGIE = "rhumatologie", "Rhumatologie"
+        UROLOGIE = "urologie", "Urologie"
+        AUTRE = "autre", "Autre"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     actif = models.BooleanField(
         default=True,
         help_text="Permet de désactiver un compte sans le supprimer (traçabilité).",
+    )
+    # Pertinent uniquement pour un compte de rôle "medecin" — non contraint
+    # en base pour les autres rôles (simplicité), simplement ignoré/masqué
+    # côté frontend quand non applicable.
+    specialite = models.CharField(
+        max_length=30, choices=Specialite.choices, blank=True,
+        help_text="Spécialité du médecin, le cas échéant.",
+    )
+    specialite_autre = models.CharField(
+        max_length=100, blank=True,
+        help_text="Texte libre si specialite='autre'.",
     )
     date_creation = models.DateTimeField(auto_now_add=True)
 

@@ -118,6 +118,63 @@ class UtilisateurAPIPermissionsTest(APITestCase):
         cree = Utilisateur.objects.get(email="nouveau@example.com")
         self.assertEqual(cree.role, ROLE_PATIENT)
 
+    def test_admin_peut_creer_un_medecin_avec_specialite(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(
+            "/api/v1/utilisateurs/",
+            {
+                "email": "cardio@example.com",
+                "first_name": "Alice",
+                "last_name": "Cardio",
+                "password": "motdepasse123",
+                "role": ROLE_MEDECIN,
+                "specialite": "cardiologie",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["specialite"], "cardiologie")
+
+    def test_specialite_autre_sans_texte_libre_est_rejetee(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(
+            "/api/v1/utilisateurs/",
+            {
+                "email": "specialiste@example.com",
+                "first_name": "Jean",
+                "last_name": "Specialiste",
+                "password": "motdepasse123",
+                "role": ROLE_MEDECIN,
+                "specialite": "autre",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("specialite_autre", response.data)
+
+    def test_specialite_autre_avec_texte_libre_est_acceptee(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(
+            "/api/v1/utilisateurs/",
+            {
+                "email": "specialiste2@example.com",
+                "first_name": "Jean",
+                "last_name": "Specialiste",
+                "password": "motdepasse123",
+                "role": ROLE_MEDECIN,
+                "specialite": "autre",
+                "specialite_autre": "Médecine du sport",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["specialite_autre"], "Médecine du sport")
+
+    def test_admin_peut_modifier_la_specialite_dun_medecin(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f"/api/v1/utilisateurs/{self.medecin.id}/", {"specialite": "pediatrie"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["specialite"], "pediatrie")
+
     def test_medecin_ne_peut_pas_modifier_un_compte(self):
         self.client.force_authenticate(self.medecin)
         response = self.client.patch(
