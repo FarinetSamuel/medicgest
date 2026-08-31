@@ -47,6 +47,21 @@ class ProfilSerializer(serializers.ModelSerializer):
         return str(fiche.id) if fiche else None
 
 
+def valider_specialite(attrs, instance=None):
+    """
+    Partagée entre création et mise à jour : si specialite="autre",
+    specialite_autre doit être renseigné — sinon on se retrouve avec un
+    compte médecin affiché comme "Autre" sans aucune précision.
+    """
+    specialite = attrs.get("specialite", getattr(instance, "specialite", ""))
+    specialite_autre = attrs.get("specialite_autre", getattr(instance, "specialite_autre", ""))
+    if specialite == Utilisateur.Specialite.AUTRE and not specialite_autre.strip():
+        raise serializers.ValidationError(
+            {"specialite_autre": "Précisez la spécialité lorsque « Autre » est sélectionné."}
+        )
+    return attrs
+
+
 class UtilisateurSerializer(serializers.ModelSerializer):
     """Lecture (et mise à jour des champs simples) d'un utilisateur."""
 
@@ -60,10 +75,15 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "role",
+            "specialite",
+            "specialite_autre",
             "actif",
             "date_creation",
         ]
         read_only_fields = ["id", "date_creation"]
+
+    def validate(self, attrs):
+        return valider_specialite(attrs, instance=self.instance)
 
 
 class UtilisateurCreationSerializer(serializers.ModelSerializer):
@@ -85,9 +105,14 @@ class UtilisateurCreationSerializer(serializers.ModelSerializer):
             "last_name",
             "password",
             "role",
+            "specialite",
+            "specialite_autre",
             "actif",
         ]
         read_only_fields = ["id"]
+
+    def validate(self, attrs):
+        return valider_specialite(attrs)
 
     def create(self, validated_data):
         role = validated_data.pop("role")
