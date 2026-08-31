@@ -151,6 +151,32 @@ export interface Notification {
   date_envoi: string | null;
 }
 
+/**
+ * Une interaction détectée entre deux substances actuellement prescrites
+ * à un patient. Pas de endpoint CRUD pour le référentiel lui-même — la
+ * seule route existante vérifie un patient donné (voir
+ * VerificationInteractionsView), en lecture seule.
+ */
+export interface InteractionDetectee {
+  substance_a: string;
+  substance_b: string;
+  medicament_a: string;
+  medicament_b: string;
+  niveau: "contre_indication" | "association_deconseillee" | "precaution_emploi" | "a_prendre_en_compte";
+  libelle: string;
+}
+
+/**
+ * Réponse de GET /patients/{id}/verifier-interactions/. `avertissement`
+ * vient du backend et doit être affiché tel quel plutôt que reformulé —
+ * c'est le texte que l'équipe a validé pour ce sujet sensible.
+ */
+export interface VerificationInteractions {
+  interactions: InteractionDetectee[];
+  avertissement: string;
+  date_publication_source: string;
+}
+
 export interface PageResultat<T> {
   count: number;
   next: string | null;

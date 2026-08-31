@@ -10,7 +10,7 @@ import { Patients } from "./pages/Patients";
 import { Prescriptions } from "./pages/Prescriptions";
 import { Stock } from "./pages/Stock";
 import { Notifications } from "./pages/Notifications";
-import { PageAVenir } from "./pages/PageAVenir";
+import { Interactions } from "./pages/Interactions";
 
 export default function App() {
   return (
@@ -32,7 +32,7 @@ export default function App() {
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/stock" element={<Stock />} />
               <Route path="/notifications" element={<Notifications />} />
-              <Route path="/interactions" element={<PageAVenir titre="Interactions" />} />
+              <Route path="/interactions" element={<Interactions />} />
             </Route>
           </Routes>
         </BrowserRouter>
