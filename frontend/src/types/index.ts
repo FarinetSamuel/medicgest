@@ -111,13 +111,31 @@ export interface Prescription {
 
 export interface Boite {
   id: string;
+  patient: string;
+  medicament: string;
   medicament_nom: string;
-  quantite_restante: string;
   quantite_initiale: string;
+  quantite_restante: string;
+  date_ouverture: string | null;
+  date_peremption: string | null;
+  delai_reappro_jours: number | null;
+  seuil_alerte_quantite: string | null;
+  seuil_alerte_jours: number | null;
+  statut: "active" | "epuisee" | "perimee";
   en_alerte: boolean;
   en_alerte_quantite: boolean;
   en_alerte_jours: boolean;
   jours_restants_estimes: number | null;
+  date_creation: string;
+}
+
+export interface MouvementStock {
+  id: string;
+  boite: string;
+  prise: string | null;
+  quantite: string;
+  motif: string;
+  date_creation: string;
 }
 
 export interface Notification {

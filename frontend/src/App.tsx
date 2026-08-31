@@ -8,6 +8,7 @@ import { Connexion } from "./pages/Connexion";
 import { Dashboard } from "./pages/Dashboard";
 import { Patients } from "./pages/Patients";
 import { Prescriptions } from "./pages/Prescriptions";
+import { Stock } from "./pages/Stock";
 import { PageAVenir } from "./pages/PageAVenir";
 
 export default function App() {
@@ -28,7 +29,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/patients" element={<Patients />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
-              <Route path="/stock" element={<PageAVenir titre="Stock" />} />
+              <Route path="/stock" element={<Stock />} />
               <Route path="/notifications" element={<PageAVenir titre="Notifications" />} />
               <Route path="/interactions" element={<PageAVenir titre="Interactions" />} />
             </Route>
