@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Pill, Package, Bell, AlertTriangle,
+  LayoutDashboard, Users, Pill, Package, Bell, AlertTriangle, UserCog,
   Moon, Sun, LogOut,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -13,6 +13,7 @@ const LIENS = [
   { to: "/stock", label: "Stock", icone: Package },
   { to: "/notifications", label: "Notifications", icone: Bell },
   { to: "/interactions", label: "Interactions", icone: AlertTriangle },
+  { to: "/comptes", label: "Comptes", icone: UserCog, reserveAdmin: true },
 ];
 
 export function Layout() {
@@ -34,7 +35,8 @@ export function Layout() {
           </span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {LIENS.map(({ to, label, icone: Icone, fin }) => (
+          {LIENS.filter((lien) => !lien.reserveAdmin || utilisateur?.role === "admin").map(
+            ({ to, label, icone: Icone, fin }) => (
             <NavLink
               key={to}
               to={to}
@@ -50,7 +52,8 @@ export function Layout() {
               <Icone size={18} />
               {label}
             </NavLink>
-          ))}
+            )
+          )}
         </nav>
         <div className="px-3 py-4 border-t border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] space-y-1">
           <button

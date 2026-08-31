@@ -45,6 +45,8 @@ export interface UtilisateurCompte {
   first_name: string;
   last_name: string;
   role: "admin" | "medecin" | "patient" | "sans_role";
+  specialite: string;
+  specialite_autre: string;
   actif: boolean;
   date_creation: string;
 }
