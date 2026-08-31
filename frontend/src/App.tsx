@@ -9,6 +9,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Patients } from "./pages/Patients";
 import { Prescriptions } from "./pages/Prescriptions";
 import { Stock } from "./pages/Stock";
+import { Notifications } from "./pages/Notifications";
 import { PageAVenir } from "./pages/PageAVenir";
 
 export default function App() {
@@ -30,7 +31,7 @@ export default function App() {
               <Route path="/patients" element={<Patients />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/stock" element={<Stock />} />
-              <Route path="/notifications" element={<PageAVenir titre="Notifications" />} />
+              <Route path="/notifications" element={<Notifications />} />
               <Route path="/interactions" element={<PageAVenir titre="Interactions" />} />
             </Route>
           </Routes>

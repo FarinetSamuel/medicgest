@@ -144,8 +144,11 @@ export interface Notification {
   categorie: "rappel_prise" | "alerte_stock" | "autre";
   titre: string;
   message: string;
+  prise: string | null;
+  boite: string | null;
   statut: "en_attente" | "envoyee" | "echec" | "lue";
   date_creation: string;
+  date_envoi: string | null;
 }
 
 export interface PageResultat<T> {
