@@ -52,12 +52,61 @@ export interface UtilisateurCompte {
 export interface Prise {
   id: string;
   prescription: string;
+  horaire_programme: string | null;
   statut: "attendue" | "prise" | "oubliee" | "reportee";
   date_heure_prevue: string | null;
   date_heure_reelle: string | null;
   quantite_prevue: string | null;
   quantite_prise: string | null;
+  enregistre_par: string | null;
   alerte_depassement: boolean;
+  commentaire: string;
+  date_creation: string;
+  date_modification: string;
+}
+
+export interface HoraireProgramme {
+  id: string;
+  prescription: string;
+  heure: string;
+  quantite: string;
+  actif: boolean;
+}
+
+/**
+ * Référentiel BDPM, lecture seule. La recherche (?search=) ne fonctionnait
+ * pas avant correction du backend (filter_backends manquant) — nécessaire
+ * pour choisir un médicament parmi les 15 857 importés.
+ */
+export interface Medicament {
+  id: string;
+  code_cis: string;
+  denomination: string;
+  forme_pharmaceutique: string;
+  dosage: string;
+  laboratoire: string;
+  code_atc: string;
+  source: string;
+  date_import: string;
+}
+
+export interface Prescription {
+  id: string;
+  patient: string;
+  medicament: string;
+  medicament_nom: string;
+  medecin_prescripteur: string;
+  type_prise: "reguliere" | "reserve";
+  dose_quantite: string;
+  dose_unite: string;
+  frequence_par_jour: number | null;
+  dose_max_par_jour: string | null;
+  date_debut: string;
+  date_fin: string | null;
+  instructions: string;
+  statut: "active" | "arretee" | "terminee";
+  horaires: HoraireProgramme[];
+  date_creation: string;
 }
 
 export interface Boite {

@@ -7,6 +7,7 @@ import { Layout } from "./components/Layout";
 import { Connexion } from "./pages/Connexion";
 import { Dashboard } from "./pages/Dashboard";
 import { Patients } from "./pages/Patients";
+import { Prescriptions } from "./pages/Prescriptions";
 import { PageAVenir } from "./pages/PageAVenir";
 
 export default function App() {
@@ -26,7 +27,7 @@ export default function App() {
             >
               <Route path="/" element={<Dashboard />} />
               <Route path="/patients" element={<Patients />} />
-              <Route path="/prescriptions" element={<PageAVenir titre="Prescriptions" />} />
+              <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/stock" element={<PageAVenir titre="Stock" />} />
               <Route path="/notifications" element={<PageAVenir titre="Notifications" />} />
               <Route path="/interactions" element={<PageAVenir titre="Interactions" />} />
