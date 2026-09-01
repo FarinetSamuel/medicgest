@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from apps.patients.permissions import medecin_suit_patient
@@ -53,7 +53,14 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         else:
             # Admin : le prescripteur doit être précisé côté client
             # (un admin peut rédiger une prescription au nom d'un médecin
-            # existant, ex. import/rattrapage de données).
+            # existant, ex. import/rattrapage de données). Sans ce
+            # contrôle explicite, une requête admin sans ce champ
+            # provoquait une IntegrityError 500 (colonne NOT NULL en
+            # base) au lieu d'un message d'erreur exploitable.
+            if not serializer.validated_data.get("medecin_prescripteur"):
+                raise ValidationError(
+                    {"medecin_prescripteur": "Ce champ est requis lorsqu'un administrateur crée la prescription."}
+                )
             serializer.save()
 
 

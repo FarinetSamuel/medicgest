@@ -34,7 +34,17 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "horaires",
             "date_creation",
         ]
-        read_only_fields = ["id", "medecin_prescripteur", "date_creation"]
+        read_only_fields = ["id", "date_creation"]
+        extra_kwargs = {
+            # Pas read_only : un admin doit pouvoir le renseigner à la
+            # création (voir PrescriptionViewSet.perform_create). Pas
+            # required=True non plus : un médecin ne l'envoie jamais dans
+            # le payload, la vue l'assigne elle-même à request.user via
+            # serializer.save(medecin_prescripteur=user), qui l'écrase de
+            # toute façon — donc aucun risque qu'un médecin usurpe un
+            # autre prescripteur en le passant dans le payload.
+            "medecin_prescripteur": {"required": False},
+        }
 
     def validate(self, attrs):
         type_prise = attrs.get("type_prise") or getattr(self.instance, "type_prise", None)

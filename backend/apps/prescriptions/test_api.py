@@ -22,6 +22,7 @@ def creer_utilisateur_avec_role(email, role):
 
 class PrescriptionAPITest(APITestCase):
     def setUp(self):
+        self.admin = creer_utilisateur_avec_role("adminapi@example.com", ROLE_ADMIN)
         self.medecin_suiveur = creer_utilisateur_avec_role("medapi1@example.com", ROLE_MEDECIN)
         self.medecin_autre = creer_utilisateur_avec_role("medapi2@example.com", ROLE_MEDECIN)
         self.user_patient = creer_utilisateur_avec_role("patapi1@example.com", ROLE_PATIENT)
@@ -64,6 +65,72 @@ class PrescriptionAPITest(APITestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_peut_prescrire_en_precisant_le_medecin(self):
+        """
+        Reproduit le bug réel observé en production : avant correction,
+        medecin_prescripteur était en read_only côté serializer, donc
+        silencieusement ignoré même envoyé par le client — IntegrityError
+        500 (colonne NOT NULL) au lieu d'un enregistrement correct.
+        """
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "medecin_prescripteur": str(self.medecin_suiveur.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(str(response.data["medecin_prescripteur"]), str(self.medecin_suiveur.id))
+
+    def test_admin_sans_medecin_prescripteur_recoit_une_erreur_propre(self):
+        """
+        Le cas qui provoquait le crash 500 : doit maintenant renvoyer un
+        400 exploitable par le frontend, jamais une IntegrityError brute.
+        """
+        self.client.force_authenticate(self.admin)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("medecin_prescripteur", response.data)
+
+    def test_medecin_ne_peut_pas_usurper_un_autre_prescripteur(self):
+        """
+        medecin_prescripteur n'est plus read_only (nécessaire pour
+        l'admin) : vérifie qu'un médecin qui tente de passer l'id d'un
+        autre médecin dans le payload est quand même enregistré comme
+        LUI-MÊME le prescripteur (la vue écrase toujours la valeur).
+        """
+        self.client.force_authenticate(self.medecin_suiveur)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "medecin_prescripteur": str(self.medecin_autre.id),
+                "type_prise": Prescription.TypePrise.REGULIERE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(str(response.data["medecin_prescripteur"]), str(self.medecin_suiveur.id))
 
     def test_patient_ne_peut_pas_prescrire(self):
         self.client.force_authenticate(self.user_patient)
