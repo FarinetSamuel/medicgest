@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { NotesMedicales } from "./NotesMedicales";
+import { PreferenceAlerteStock } from "./PreferenceAlerteStock";
 import { SuivisMedecin } from "./SuivisMedecin";
 import type { NoteMedicale, Patient } from "../../types";
 
@@ -18,6 +19,7 @@ export function DetailPatient({
   onModifier,
   onSupprimer,
   onNoteAjoutee,
+  onPatientMaj,
 }: {
   patient: Patient;
   peutEditer: boolean;
@@ -27,6 +29,7 @@ export function DetailPatient({
   onModifier: () => void;
   onSupprimer: () => void;
   onNoteAjoutee: (note: NoteMedicale) => void;
+  onPatientMaj: (patient: Patient) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -92,6 +95,8 @@ export function DetailPatient({
           </div>
         </div>
       )}
+
+      <PreferenceAlerteStock patient={patient} onPatientMaj={onPatientMaj} />
 
       {peutGererSuivis && <SuivisMedecin patientId={patient.id} />}
 

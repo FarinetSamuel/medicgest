@@ -17,6 +17,11 @@ class Patient(models.Model):
         MASCULIN = "M", "Masculin"
         AUTRE = "A", "Autre / non précisé"
 
+    class PreferenceAlerteStock(models.TextChoices):
+        PATIENT = "patient", "Patient uniquement"
+        MEDECIN = "medecin", "Médecin suiveur uniquement"
+        LES_DEUX = "les_deux", "Patient et médecin suiveur"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     utilisateur = models.OneToOneField(
         settings.AUTH_USER_MODEL,
@@ -35,6 +40,17 @@ class Patient(models.Model):
         max_length=50,
         blank=True,
         help_text="Ex. : conjoint, enfant, aidant...",
+    )
+
+    # Décision validée : choix librement modifiable par le patient
+    # lui-même (voir PatientViewSet.preference_alerte_stock) — décide qui
+    # est prévenu en cas de stock bas ou de rupture totale. Défaut
+    # "patient" pour ne rien changer au comportement existant.
+    preference_alerte_stock = models.CharField(
+        max_length=10,
+        choices=PreferenceAlerteStock.choices,
+        default=PreferenceAlerteStock.PATIENT,
+        help_text="Qui reçoit les alertes de stock (quantité basse, jours restants bas, rupture).",
     )
 
     date_creation = models.DateTimeField(auto_now_add=True)

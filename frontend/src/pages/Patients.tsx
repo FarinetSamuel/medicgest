@@ -107,6 +107,7 @@ export function Patients() {
           onModifier={() => {}}
           onSupprimer={() => {}}
           onNoteAjoutee={() => {}}
+          onPatientMaj={remplacerPatient}
         />
       </div>
     );
@@ -212,6 +213,7 @@ export function Patients() {
               onModifier={() => setPatientEnEdition(patientSelectionne)}
               onSupprimer={() => setPatientASupprimer(patientSelectionne)}
               onNoteAjoutee={ajouterNote}
+              onPatientMaj={remplacerPatient}
             />
           ) : (
             <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">

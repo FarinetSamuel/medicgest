@@ -1,6 +1,8 @@
 from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
 from apps.utilisateurs.permissions import EstAdmin, EstAdminOuMedecin, EstAdminOuMedecinEnLecture
@@ -56,6 +58,33 @@ class PatientViewSet(viewsets.ModelViewSet):
             # médecin suiveur actif — évite une étape manuelle séparée
             # sur /suivis-medecin/ juste après la création.
             PatientMedecin.objects.create(patient=patient, medecin=user, actif=True)
+
+    @action(detail=True, methods=["patch"], url_path="preference-alerte-stock")
+    def preference_alerte_stock(self, request, pk=None):
+        """
+        Action dédiée plutôt qu'un PATCH générique sur la fiche : la fiche
+        Patient reste en lecture seule pour le patient (voir
+        PeutAccederAuPatient), mais ce champ précis lui appartient — c'est
+        lui qui choisit qui est prévenu en cas de stock bas ou de rupture
+        (voir apps.notifications.logique._destinataires_alerte_stock).
+        get_queryset() applique déjà le bon périmètre par rôle (admin :
+        tous, médecin : patients suivis, patient : lui-même), donc pas de
+        contrôle d'autorisation supplémentaire à dupliquer ici.
+        """
+        patient = self.get_queryset().filter(pk=pk).first()
+        if patient is None:
+            raise NotFound("Patient introuvable.")
+
+        valeur = request.data.get("preference_alerte_stock")
+        valeurs_valides = [choix[0] for choix in Patient.PreferenceAlerteStock.choices]
+        if valeur not in valeurs_valides:
+            raise ValidationError(
+                {"preference_alerte_stock": f"Doit être l'une de : {', '.join(valeurs_valides)}."}
+            )
+
+        patient.preference_alerte_stock = valeur
+        patient.save(update_fields=["preference_alerte_stock"])
+        return Response(PatientSerializer(patient).data)
 
 
 class NoteMedicaleViewSet(viewsets.ModelViewSet):

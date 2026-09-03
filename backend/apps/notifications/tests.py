@@ -11,8 +11,10 @@ from apps.prescriptions.models import Prescription, Prise
 from apps.stock.models import Boite
 from apps.utilisateurs.models import ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
+from apps.patients.models import PatientMedecin
+
 from .canaux import envoyer_notification
-from .logique import generer_alertes_stock, generer_rappels_prises_a_venir
+from .logique import generer_alertes_rupture_stock, generer_alertes_stock, generer_rappels_prises_a_venir
 from .models import Notification
 
 
@@ -126,6 +128,78 @@ class AlertesStockNotificationTest(TestCase):
         )
         generer_alertes_stock(delai_relance_heures=24)
         deuxieme_appel = generer_alertes_stock(delai_relance_heures=24)
+        self.assertEqual(len(deuxieme_appel), 0)
+
+    def test_preference_medecin_envoie_uniquement_au_medecin_suiveur(self):
+        PatientMedecin.objects.create(patient=self.patient, medecin=self.medecin, actif=True)
+        self.patient.preference_alerte_stock = "medecin"
+        self.patient.save(update_fields=["preference_alerte_stock"])
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=2, seuil_alerte_quantite=5,
+        )
+        notifications = generer_alertes_stock()
+        self.assertEqual(len(notifications), 2)  # in_app + email
+        self.assertTrue(all(n.destinataire == self.medecin for n in notifications))
+
+    def test_preference_les_deux_envoie_au_patient_et_au_medecin(self):
+        PatientMedecin.objects.create(patient=self.patient, medecin=self.medecin, actif=True)
+        self.patient.preference_alerte_stock = "les_deux"
+        self.patient.save(update_fields=["preference_alerte_stock"])
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=2, seuil_alerte_quantite=5,
+        )
+        notifications = generer_alertes_stock()
+        self.assertEqual(len(notifications), 4)  # (in_app + email) x 2 destinataires
+        destinataires = {n.destinataire for n in notifications}
+        self.assertEqual(destinataires, {self.user_patient, self.medecin})
+
+
+class AlertesRuptureStockNotificationTest(TestCase):
+    def setUp(self):
+        self.medecin = creer_utilisateur_avec_role("mednotif4@example.com", ROLE_MEDECIN)
+        self.user_patient = creer_utilisateur_avec_role("patnotif4@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=self.user_patient,
+            numero_dossier="DOS-NOTIF-4",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        self.medicament = Medicament.objects.create(code_cis="NOTIF4", denomination="NOTIFOL4")
+        self.prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.RESERVE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+
+    def test_alerte_generee_quand_aucune_boite_pour_une_prescription_active(self):
+        notifications = generer_alertes_rupture_stock()
+        self.assertEqual(len(notifications), 2)  # in_app + email
+        self.assertEqual(notifications[0].prescription, self.prescription)
+        self.assertIsNone(notifications[0].boite)
+
+    def test_pas_dalerte_si_une_boite_active_existe(self):
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10,
+        )
+        notifications = generer_alertes_rupture_stock()
+        self.assertEqual(len(notifications), 0)
+
+    def test_pas_dalerte_pour_une_prescription_arretee(self):
+        self.prescription.statut = Prescription.Statut.ARRETEE
+        self.prescription.save(update_fields=["statut"])
+        notifications = generer_alertes_rupture_stock()
+        self.assertEqual(len(notifications), 0)
+
+    def test_pas_de_relance_avant_le_delai(self):
+        generer_alertes_rupture_stock(delai_relance_heures=24)
+        deuxieme_appel = generer_alertes_rupture_stock(delai_relance_heures=24)
         self.assertEqual(len(deuxieme_appel), 0)
 
 

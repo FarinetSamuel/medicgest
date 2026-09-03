@@ -9,10 +9,30 @@ import datetime
 from django.conf import settings
 from django.utils import timezone
 
-from apps.prescriptions.models import Prise
+from apps.prescriptions.models import Prescription, Prise
 from apps.stock.models import Boite
 
 from .models import Notification
+
+
+def _destinataires_alerte_stock(patient) -> list:
+    """
+    Qui doit recevoir une alerte de stock pour ce patient, selon sa
+    préférence `preference_alerte_stock` (choix laissé au patient — voir
+    apps.patients.models.Patient et PatientViewSet.preference_alerte_stock).
+    """
+    from apps.patients.models import Patient
+
+    pref = patient.preference_alerte_stock
+    destinataires = []
+    if pref in (Patient.PreferenceAlerteStock.PATIENT, Patient.PreferenceAlerteStock.LES_DEUX):
+        destinataires.append(patient.utilisateur)
+    if pref in (Patient.PreferenceAlerteStock.MEDECIN, Patient.PreferenceAlerteStock.LES_DEUX):
+        destinataires.extend(
+            suivi.medecin
+            for suivi in patient.medecins_suivi.filter(actif=True).select_related("medecin")
+        )
+    return destinataires
 
 
 def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[Notification]:
@@ -63,10 +83,15 @@ def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[N
 
 def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
     """
-    Crée une alerte (in_app + email) pour chaque Boite active en_alerte,
-    sauf si une alerte a déjà été notifiée pour cette boîte il y a moins
-    de `delai_relance_heures` — évite de spammer le patient à chaque
-    exécution de la commande (typiquement quotidienne ou plus fréquente).
+    Crée une alerte (in_app + email) pour chaque Boite active en_alerte, à
+    destination du/des destinataire(s) choisi(s) pour ce patient (voir
+    _destinataires_alerte_stock), sauf si CE destinataire a déjà été
+    notifié pour cette boîte il y a moins de `delai_relance_heures` —
+    évite de spammer à chaque exécution de la commande (typiquement
+    quotidienne ou plus fréquente). La relance est vérifiée par
+    destinataire (et non plus globalement par boîte) : si la préférence
+    passe de "patient" à "les_deux", le médecin nouvellement ajouté doit
+    quand même recevoir une première alerte immédiatement.
     """
     limite_relance = timezone.now() - datetime.timedelta(hours=delai_relance_heures)
 
@@ -79,12 +104,6 @@ def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
         if not boite.en_alerte:
             continue
 
-        derniere_alerte = boite.notifications.filter(
-            categorie=Notification.Categorie.ALERTE_STOCK
-        ).order_by("-date_creation").first()
-        if derniere_alerte and derniere_alerte.date_creation > limite_relance:
-            continue
-
         titre = f"Stock bas : {boite.medicament.denomination}"
         details = []
         if boite.en_alerte_quantite:
@@ -93,15 +112,73 @@ def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
             details.append("stock estimé bientôt épuisé selon la consommation récente")
         message = f"Le stock de {boite.medicament.denomination} est bas : {', '.join(details)}."
 
-        for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
-            creees.append(
-                Notification.objects.create(
-                    destinataire=boite.patient.utilisateur,
-                    canal=canal,
-                    categorie=Notification.Categorie.ALERTE_STOCK,
-                    titre=titre,
-                    message=message,
-                    boite=boite,
+        for destinataire in _destinataires_alerte_stock(boite.patient):
+            derniere_alerte = boite.notifications.filter(
+                categorie=Notification.Categorie.ALERTE_STOCK, destinataire=destinataire
+            ).order_by("-date_creation").first()
+            if derniere_alerte and derniere_alerte.date_creation > limite_relance:
+                continue
+
+            for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
+                creees.append(
+                    Notification.objects.create(
+                        destinataire=destinataire,
+                        canal=canal,
+                        categorie=Notification.Categorie.ALERTE_STOCK,
+                        titre=titre,
+                        message=message,
+                        boite=boite,
+                    )
                 )
-            )
+    return creees
+
+
+def generer_alertes_rupture_stock(delai_relance_heures: int = 24) -> list[Notification]:
+    """
+    Crée une alerte "rupture de stock" pour chaque prescription active
+    (régulière ou réserve) dont le patient n'a AUCUNE boîte active de ce
+    médicament — cas non couvert par generer_alertes_stock, qui ne
+    parcourt que les Boite déjà existantes et ne peut donc jamais
+    détecter une absence totale de boîte.
+    """
+    limite_relance = timezone.now() - datetime.timedelta(hours=delai_relance_heures)
+
+    prescriptions_actives = Prescription.objects.filter(
+        statut=Prescription.Statut.ACTIVE
+    ).select_related("patient__utilisateur", "medicament")
+
+    creees = []
+    for prescription in prescriptions_actives:
+        a_du_stock = Boite.objects.filter(
+            patient=prescription.patient,
+            medicament=prescription.medicament,
+            statut=Boite.Statut.ACTIVE,
+        ).exists()
+        if a_du_stock:
+            continue
+
+        titre = f"Rupture de stock : {prescription.medicament.denomination}"
+        message = (
+            f"Aucune boîte de {prescription.medicament.denomination} n'est enregistrée "
+            "alors que la prescription est active."
+        )
+
+        for destinataire in _destinataires_alerte_stock(prescription.patient):
+            derniere_alerte = prescription.notifications.filter(
+                categorie=Notification.Categorie.ALERTE_STOCK, destinataire=destinataire
+            ).order_by("-date_creation").first()
+            if derniere_alerte and derniere_alerte.date_creation > limite_relance:
+                continue
+
+            for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
+                creees.append(
+                    Notification.objects.create(
+                        destinataire=destinataire,
+                        canal=canal,
+                        categorie=Notification.Categorie.ALERTE_STOCK,
+                        titre=titre,
+                        message=message,
+                        prescription=prescription,
+                    )
+                )
     return creees

@@ -8,11 +8,11 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = [
             "id", "canal", "categorie", "titre", "message",
-            "prise", "boite", "statut", "date_creation", "date_envoi",
+            "prise", "boite", "prescription", "statut", "date_creation", "date_envoi",
         ]
         read_only_fields = [
             "id", "canal", "categorie", "titre", "message",
-            "prise", "boite", "date_creation", "date_envoi",
+            "prise", "boite", "prescription", "date_creation", "date_envoi",
         ]
 
     def validate_statut(self, value):

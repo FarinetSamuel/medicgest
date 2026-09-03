@@ -48,6 +48,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "contact_urgence_nom",
             "contact_urgence_telephone",
             "contact_urgence_lien",
+            "preference_alerte_stock",
             "notes_medicales",
             "date_creation",
             "date_modification",

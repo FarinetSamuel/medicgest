@@ -29,6 +29,7 @@ export interface Patient {
   contact_urgence_nom: string;
   contact_urgence_telephone: string;
   contact_urgence_lien: string;
+  preference_alerte_stock: "patient" | "medecin" | "les_deux";
   notes_medicales: NoteMedicale[];
   date_creation: string;
   date_modification: string;
@@ -148,6 +149,7 @@ export interface Notification {
   message: string;
   prise: string | null;
   boite: string | null;
+  prescription: string | null;
   statut: "en_attente" | "envoyee" | "echec" | "lue";
   date_creation: string;
   date_envoi: string | null;

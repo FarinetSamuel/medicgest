@@ -200,6 +200,58 @@ class PatientAPIPermissionsTest(APITestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+    # --- Préférence de destinataire des alertes de stock : choix du patient ---
+
+    def test_patient_peut_choisir_sa_preference_alerte_stock(self):
+        """
+        Action dédiée : la fiche Patient reste en lecture seule pour le
+        patient (voir test_patient_ne_peut_pas_modifier_sa_propre_fiche),
+        mais ce champ précis lui appartient.
+        """
+        self.client.force_authenticate(self.user_patient_1)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient_1.id}/preference-alerte-stock/",
+            {"preference_alerte_stock": "les_deux"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.patient_1.refresh_from_db()
+        self.assertEqual(self.patient_1.preference_alerte_stock, "les_deux")
+
+    def test_patient_ne_peut_pas_choisir_la_preference_dun_autre_patient(self):
+        self.client.force_authenticate(self.user_patient_1)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient_2.id}/preference-alerte-stock/",
+            {"preference_alerte_stock": "medecin"},
+        )
+        # get_queryset filtre déjà patient_2 hors du périmètre de user_patient_1.
+        self.assertEqual(response.status_code, 404)
+        self.patient_2.refresh_from_db()
+        self.assertEqual(self.patient_2.preference_alerte_stock, "patient")
+
+    def test_medecin_suiveur_peut_definir_la_preference_dun_patient_suivi(self):
+        self.client.force_authenticate(self.medecin_a)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient_1.id}/preference-alerte-stock/",
+            {"preference_alerte_stock": "medecin"},
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_medecin_non_suiveur_ne_peut_pas_definir_la_preference(self):
+        self.client.force_authenticate(self.medecin_b)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient_1.id}/preference-alerte-stock/",
+            {"preference_alerte_stock": "medecin"},
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_valeur_de_preference_invalide_rejetee(self):
+        self.client.force_authenticate(self.user_patient_1)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient_1.id}/preference-alerte-stock/",
+            {"preference_alerte_stock": "n_importe_quoi"},
+        )
+        self.assertEqual(response.status_code, 400)
+
 
 class NoteMedicaleAPIPermissionsTest(APITestCase):
     def setUp(self):
