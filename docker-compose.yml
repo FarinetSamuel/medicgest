@@ -13,6 +13,7 @@ services:
 
   backend:
     build: ./backend
+    image: medicgest-backend
     restart: unless-stopped
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
@@ -25,7 +26,7 @@ services:
       - db
 
   cron:
-    build: ./backend
+    image: medicgest-backend
     restart: unless-stopped
     command: /app/cron/entrypoint.sh
     volumes:
@@ -34,6 +35,7 @@ services:
       - .env
     depends_on:
       - db
+      - backend
 
   frontend:
     build:
