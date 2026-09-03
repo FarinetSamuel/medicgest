@@ -7,19 +7,25 @@
 # séparé tentait un `docker pull` inexistant plutôt qu'un build local.
 set -e
 
+# Écrit hors de /app (volume monté depuis ./backend sur l'hôte) : un
+# fichier créé sous /app atterrit réellement sur le disque du serveur, et
+# son chmod 600 le rend illisible pour l'outil de déploiement (Arcane) qui
+# parcourt ce dossier pour construire le contexte de build — provoquait un
+# tar corrompu et un "unexpected EOF" au build du Dockerfile.
+#
 # python -c avec shlex.quote plutôt qu'un sed naïf : des valeurs comme
 # DJANGO_SECRET_KEY peuvent contenir $, ", ' ... qu'un export mal échappé
 # romprait ou pire, réinterpréterait au moment du ". env.sh".
 python -c "
 import os, shlex
 skip = {'HOME', 'HOSTNAME', 'PWD'}
-with open('/app/cron/env.sh', 'w') as f:
+with open('/etc/cron-env.sh', 'w') as f:
     for k, v in os.environ.items():
         if k in skip:
             continue
         f.write('export %s=%s\n' % (k, shlex.quote(v)))
 "
-chmod 600 /app/cron/env.sh
+chmod 600 /etc/cron-env.sh
 
 mkdir -p /var/log/cron
 touch /var/log/cron/cron.log
