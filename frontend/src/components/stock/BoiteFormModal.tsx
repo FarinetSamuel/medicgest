@@ -164,7 +164,7 @@ export function BoiteFormModal({
           </legend>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs mb-1">Quantité restante ≤</label>
+              <label className="block text-xs mb-1">Quantité minimale ≤</label>
               <input
                 type="number"
                 step="1"
@@ -176,6 +176,11 @@ export function BoiteFormModal({
             <div>
               <label className="block text-xs mb-1">Jours restants estimés ≤</label>
               <input type="number" min="0" {...champ("seuil_alerte_jours")} className={champClasse} />
+              {!modeCreation && boite!.jours_restants_estimes !== null && (
+                <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+                  Actuellement estimé à ~{boite!.jours_restants_estimes} j, d'après la consommation récente.
+                </p>
+              )}
             </div>
           </div>
           <div>
