@@ -34,7 +34,7 @@ python manage.py verifier_alertes_stock --delai-relance-heures 24  # low-stock a
 python manage.py import_thesaurus --fichier thesaurus.txt      # import ANSM interactions thesaurus (frozen since 2023-09-15, see README)
 ```
 
-These three domain commands are automated by a dedicated `cron` service under Docker (see Docker section below) — no manual cron setup needed in that environment.
+These three domain commands are automated via system cron running inside the `backend` container under Docker (see Docker section below) — no manual cron setup needed in that environment.
 
 ### Frontend (from `frontend/`)
 
@@ -53,7 +53,7 @@ docker compose up --build
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 ```
-Backend on `localhost:8077`→8000, frontend on `localhost:8078`→80 (see `docker-compose.yml`). A `cron` service (same image/build as `backend`, code in `backend/cron/`) runs `generer_prises_attendues`, `envoyer_rappels_prises`, and `verifier_alertes_stock` on schedule via system cron inside the container (`CRON_TZ=Europe/Paris`); `docker compose logs -f cron` shows executions. The schedule lives in `backend/cron/crontab`, which is bind-mounted like the rest of `backend/`, so schedule/command changes take effect on a plain redeploy (no rebuild needed unless `requirements.txt` changed).
+Backend on `localhost:8077`→8000, frontend on `localhost:8078`→80 (see `docker-compose.yml`). The `backend` container's entrypoint (`backend/cron/entrypoint.sh`) starts system cron in the background (`CRON_TZ=Europe/Paris`) — running `generer_prises_attendues`, `envoyer_rappels_prises`, and `verifier_alertes_stock` on schedule — before launching `runserver` in the foreground; `docker compose logs -f backend` shows both. Deliberately one service, not two: Arcane resolves each compose service's image independently and can't reuse a sibling service's locally built image without a registry, so a separate `cron` service building the same `./backend` context caused deploy failures. The schedule lives in `backend/cron/crontab`, which is bind-mounted like the rest of `backend/`, so schedule/command changes take effect on a plain redeploy (no rebuild needed unless `requirements.txt` changed).
 
 ## Architecture
 

@@ -65,7 +65,7 @@ médicamenteuses qui seront ajoutés ultérieurement.
 | Backend | Python / Django + Django REST Framework |
 | Base de données | PostgreSQL |
 | Frontend | React + TypeScript (à partir du palier 6) |
-| Tâches planifiées | Cron (conteneur `cron` dédié, voir `backend/cron/`) |
+| Tâches planifiées | Cron (dans le conteneur `backend`, voir `backend/cron/`) |
 | Conteneurisation | Docker / docker-compose |
 
 ## Prérequis
@@ -147,8 +147,8 @@ en fin d'exécution.
   ```bash
   python manage.py generer_prises_attendues --jours 30
   ```
-  Exécutée automatiquement chaque jour à 2h (heure de Paris) par le
-  conteneur `cron` (voir [Automatisation des tâches (cron)](#automatisation-des-tâches-cron)).
+  Exécutée automatiquement chaque jour à 2h (heure de Paris) (voir
+  [Automatisation des tâches (cron)](#automatisation-des-tâches-cron)).
 - Chaque prise enregistrée avec le statut `prise` **décrémente
   automatiquement** le stock (boîtes actives, épuisement de la boîte qui
   périme le plus tôt en premier). Un patient peut librement corriger ou
@@ -168,7 +168,7 @@ Trois canaux, à des degrés de maturité différents :
 | **In-app** | Fonctionnel. Consultable via `/api/v1/notifications/`, marquable comme lue (`PATCH` avec `statut: "lue"`). |
 | **SMS** | Interface prête mais **désactivée** (`SMS_BACKEND_ACTIVE=False`) : aucun fournisseur (Twilio, OVHcloud SMS...) n'est configuré, faute de compte payant. Une notification SMS est explicitement marquée en échec plutôt que faussement "envoyée" — voir `apps/notifications/canaux.py` pour le point d'extension. |
 
-Deux commandes, automatisées par le conteneur `cron` (voir
+Deux commandes, automatisées (voir
 [Automatisation des tâches (cron)](#automatisation-des-tâches-cron)) :
 
 ```bash
@@ -183,8 +183,8 @@ python manage.py verifier_alertes_stock --delai-relance-heures 24
 
 Trois commandes de management doivent tourner en continu pour que le suivi
 des prises, les rappels et les alertes de stock restent à jour. Avec Docker,
-un service `cron` dédié (`docker-compose.yml`, code dans `backend/cron/`)
-s'en charge automatiquement — rien à configurer manuellement :
+le conteneur `backend` s'en charge automatiquement (code dans
+`backend/cron/`) — rien à configurer manuellement :
 
 | Commande | Fréquence |
 |---|---|
@@ -194,13 +194,17 @@ s'en charge automatiquement — rien à configurer manuellement :
 
 Détails :
 
-- Le service `cron` construit **la même image** que `backend` (même
-  `Dockerfile`) mais démarre `cron` en tâche de fond au lieu du serveur Django
-  — voir `backend/cron/entrypoint.sh`.
+- Le point d'entrée du conteneur `backend` (`backend/cron/entrypoint.sh`)
+  démarre `cron` en tâche de fond puis lance `runserver` au premier plan —
+  les deux tournent dans le même conteneur, volontairement : un second
+  service dédié construisant la même image a échoué au déploiement (Arcane
+  ne sait pas réutiliser localement l'image déjà construite par un service
+  frère sans passer par un registre).
 - Les horaires sont définis dans `backend/cron/crontab` ; ce fichier étant
   monté en volume comme le reste de `backend/`, modifier les horaires ne
   nécessite qu'un **Redeploy** (redémarrage du conteneur), pas un rebuild.
-- Les logs des exécutions sont visibles via `docker compose logs -f cron`.
+- Les logs des exécutions sont mêlés à ceux du serveur Django, visibles via
+  `docker compose logs -f backend`.
 - Sans Docker, ces trois commandes doivent être planifiées manuellement (cron
   système, tâche planifiée, etc.) en pointant vers le même environnement
   Python que le serveur applicatif.

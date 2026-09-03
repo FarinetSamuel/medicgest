@@ -1,8 +1,10 @@
 #!/bin/sh
-# Point d'entrée du service "cron" (docker-compose). Capture l'environnement
-# du conteneur (DATABASE_URL, DJANGO_SECRET_KEY, ...) dans un fichier que
-# run_task.sh source avant chaque tâche, car cron ne transmet pas
-# l'environnement du process qui le lance à ses tâches planifiées.
+# Point d'entrée du conteneur backend : démarre cron en tâche de fond
+# (paliers 2/4, voir backend/cron/crontab) puis lance le serveur Django
+# au premier plan. Les deux tournent dans le même conteneur — Arcane
+# résout les images par service et ne sait pas réutiliser localement
+# l'image d'un service sœur sans registre, donc un second service "cron"
+# séparé tentait un `docker pull` inexistant plutôt qu'un build local.
 set -e
 
 # python -c avec shlex.quote plutôt qu'un sed naïf : des valeurs comme
@@ -25,4 +27,8 @@ touch /var/log/cron/cron.log
 crontab /app/cron/crontab
 
 cron
-exec tail -f /var/log/cron/cron.log
+# Les logs cron sont mêlés à ceux du serveur Django (mêmes stdout/stderr),
+# visibles ensemble via `docker compose logs -f backend`.
+tail -F /var/log/cron/cron.log &
+
+exec python manage.py runserver 0.0.0.0:8000
