@@ -245,6 +245,42 @@ class PriseAPITest(APITestCase):
         response_delete = self.client.delete(f"/api/v1/prises/{prise.id}/")
         self.assertEqual(response_delete.status_code, 204)
 
+    def test_autre_patient_ne_peut_pas_enregistrer_une_prise_sur_une_prescription_qui_nest_pas_la_sienne(self):
+        autre_patient_user = creer_utilisateur_avec_role("patapi3@example.com", ROLE_PATIENT)
+        Patient.objects.create(
+            utilisateur=autre_patient_user,
+            numero_dossier="DOS-API-PRISE-2",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+        )
+        self.client.force_authenticate(autre_patient_user)
+        response = self.client.post(
+            "/api/v1/prises/",
+            {
+                "prescription": str(self.prescription.id),
+                "date_heure_reelle": "2026-01-05T10:00:00Z",
+                "quantite_prise": "1.00",
+                "statut": "prise",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Prise.objects.count(), 0)
+
+    def test_medecin_non_suiveur_ne_peut_pas_enregistrer_une_prise(self):
+        autre_medecin = creer_utilisateur_avec_role("medapi5@example.com", ROLE_MEDECIN)
+        self.client.force_authenticate(autre_medecin)
+        response = self.client.post(
+            "/api/v1/prises/",
+            {
+                "prescription": str(self.prescription.id),
+                "date_heure_reelle": "2026-01-05T10:00:00Z",
+                "quantite_prise": "1.00",
+                "statut": "prise",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Prise.objects.count(), 0)
+
     def test_medecin_non_suiveur_ne_voit_pas_les_prises(self):
         autre_medecin = creer_utilisateur_avec_role("medapi4@example.com", ROLE_MEDECIN)
         Prise.objects.create(

@@ -125,7 +125,23 @@ class PriseViewSet(viewsets.ModelViewSet):
         return base.none()
 
     def perform_create(self, serializer):
-        prise = serializer.save(enregistre_par=self.request.user)
+        user = self.request.user
+        prescription = serializer.validated_data["prescription"]
+        # has_object_permission n'est jamais appelée à la création (pas
+        # encore d'objet) : sans ce contrôle explicite, PeutAccederALaPrise
+        # laisse passer n'importe quel utilisateur authentifié, qui pourrait
+        # alors enregistrer une prise sur la prescription d'un autre
+        # patient (et donc décrémenter le stock de ce patient via le signal
+        # stock/signals.py).
+        if user.role == ROLE_MEDECIN and not medecin_suit_patient(user, prescription.patient):
+            raise PermissionDenied(
+                "Vous ne pouvez enregistrer une prise que pour un patient que vous suivez."
+            )
+        if user.role == ROLE_PATIENT and prescription.patient.utilisateur_id != user.id:
+            raise PermissionDenied(
+                "Vous ne pouvez enregistrer une prise que sur vos propres prescriptions."
+            )
+        prise = serializer.save(enregistre_par=user)
         prise.alerte_depassement = calculer_alerte_depassement(prise)
         prise.save(update_fields=["alerte_depassement"])
 
