@@ -63,9 +63,16 @@ def valider_specialite(attrs, instance=None):
 
 
 class UtilisateurSerializer(serializers.ModelSerializer):
-    """Lecture (et mise à jour des champs simples) d'un utilisateur."""
+    """
+    Lecture (et mise à jour des champs simples) d'un utilisateur.
+
+    `password` est facultatif et write-only : absent, le mot de passe
+    existant n'est pas touché. Fourni, il réinitialise le mot de passe du
+    compte — réservé aux administrateurs (voir UtilisateurViewSet.get_permissions).
+    """
 
     role = serializers.CharField(read_only=True)
+    password = serializers.CharField(write_only=True, min_length=8, required=False, allow_blank=True)
 
     class Meta:
         model = Utilisateur
@@ -79,11 +86,20 @@ class UtilisateurSerializer(serializers.ModelSerializer):
             "specialite_autre",
             "actif",
             "date_creation",
+            "password",
         ]
         read_only_fields = ["id", "date_creation"]
 
     def validate(self, attrs):
         return valider_specialite(attrs, instance=self.instance)
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop("password", None)
+        instance = super().update(instance, validated_data)
+        if password:
+            instance.set_password(password)
+            instance.save(update_fields=["password"])
+        return instance
 
 
 class UtilisateurCreationSerializer(serializers.ModelSerializer):

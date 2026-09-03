@@ -94,6 +94,7 @@ export function CompteFormModal({
           payload.specialite = champs.specialite;
           payload.specialite_autre = champs.specialite === "autre" ? champs.specialite_autre : "";
         }
+        if (champs.password) payload.password = champs.password;
         const { data } = await api.patch<UtilisateurCompte>(`/utilisateurs/${compte!.id}/`, payload);
         toast.success("Compte mis à jour");
         onSauvegarde(data);
@@ -142,10 +143,22 @@ export function CompteFormModal({
           </div>
         </div>
 
-        {modeCreation && (
+        {modeCreation ? (
           <div>
             <label className="block text-sm font-medium mb-1.5">Mot de passe</label>
             <input required type="password" minLength={8} {...champTexte("password")} className={champClasse} />
+            {erreurs.password && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.password}</p>}
+          </div>
+        ) : (
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Réinitialiser le mot de passe</label>
+            <input
+              type="password"
+              minLength={8}
+              placeholder="Laisser vide pour ne pas changer"
+              {...champTexte("password")}
+              className={champClasse}
+            />
             {erreurs.password && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.password}</p>}
           </div>
         )}

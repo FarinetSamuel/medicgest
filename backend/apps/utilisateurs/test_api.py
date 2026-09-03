@@ -186,3 +186,23 @@ class UtilisateurAPIPermissionsTest(APITestCase):
         self.client.force_authenticate(self.medecin)
         response = self.client.delete(f"/api/v1/utilisateurs/{self.patient_actif.id}/")
         self.assertEqual(response.status_code, 403)
+
+    def test_admin_peut_reinitialiser_le_mot_de_passe_dun_compte(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.patch(
+            f"/api/v1/utilisateurs/{self.medecin.id}/", {"password": "nouveau-mdp-123"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("password", response.data)
+        self.medecin.refresh_from_db()
+        self.assertTrue(self.medecin.check_password("nouveau-mdp-123"))
+
+    def test_modifier_un_compte_sans_mot_de_passe_ne_le_change_pas(self):
+        self.client.force_authenticate(self.admin)
+        mot_de_passe_hash_avant = self.medecin.password
+        response = self.client.patch(
+            f"/api/v1/utilisateurs/{self.medecin.id}/", {"first_name": "Modifié"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.medecin.refresh_from_db()
+        self.assertEqual(self.medecin.password, mot_de_passe_hash_avant)
