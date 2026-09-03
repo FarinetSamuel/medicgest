@@ -1,0 +1,13 @@
+# Planification des tâches d'automatisation (paliers 2 et 4).
+# Interprétée avec le fuseau horaire applicatif (voir TIME_ZONE dans settings.py)
+# plutôt que l'UTC par défaut du conteneur.
+CRON_TZ=Europe/Paris
+
+# Rappels de prise à venir : toutes les 15 minutes
+*/15 * * * * /app/cron/run_task.sh envoyer_rappels_prises --fenetre-minutes 15 >> /var/log/cron/cron.log 2>&1
+
+# Génération des prises attendues (prescriptions régulières) : une fois par jour, heure creuse
+0 2 * * * /app/cron/run_task.sh generer_prises_attendues --jours 30 >> /var/log/cron/cron.log 2>&1
+
+# Alertes de stock bas : une fois par jour
+0 3 * * * /app/cron/run_task.sh verifier_alertes_stock --delai-relance-heures 24 >> /var/log/cron/cron.log 2>&1

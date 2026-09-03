@@ -24,6 +24,17 @@ services:
     depends_on:
       - db
 
+  cron:
+    build: ./backend
+    restart: unless-stopped
+    command: /app/cron/entrypoint.sh
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+
   frontend:
     build:
       context: ./frontend

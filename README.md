@@ -65,7 +65,7 @@ médicamenteuses qui seront ajoutés ultérieurement.
 | Backend | Python / Django + Django REST Framework |
 | Base de données | PostgreSQL |
 | Frontend | React + TypeScript (à partir du palier 6) |
-| Tâches planifiées | Celery + Redis (à partir du palier 4) |
+| Tâches planifiées | Cron (conteneur `cron` dédié, voir `backend/cron/`) |
 | Conteneurisation | Docker / docker-compose |
 
 ## Prérequis
@@ -147,8 +147,8 @@ en fin d'exécution.
   ```bash
   python manage.py generer_prises_attendues --jours 30
   ```
-  À exécuter régulièrement (cron quotidien recommandé — automatisation
-  prévue au palier 4).
+  Exécutée automatiquement chaque jour à 2h (heure de Paris) par le
+  conteneur `cron` (voir [Automatisation des tâches (cron)](#automatisation-des-tâches-cron)).
 - Chaque prise enregistrée avec le statut `prise` **décrémente
   automatiquement** le stock (boîtes actives, épuisement de la boîte qui
   périme le plus tôt en premier). Un patient peut librement corriger ou
@@ -168,16 +168,42 @@ Trois canaux, à des degrés de maturité différents :
 | **In-app** | Fonctionnel. Consultable via `/api/v1/notifications/`, marquable comme lue (`PATCH` avec `statut: "lue"`). |
 | **SMS** | Interface prête mais **désactivée** (`SMS_BACKEND_ACTIVE=False`) : aucun fournisseur (Twilio, OVHcloud SMS...) n'est configuré, faute de compte payant. Une notification SMS est explicitement marquée en échec plutôt que faussement "envoyée" — voir `apps/notifications/canaux.py` pour le point d'extension. |
 
-Deux commandes à exécuter régulièrement (cron recommandé, Celery Beat en
-alternative future) :
+Deux commandes, automatisées par le conteneur `cron` (voir
+[Automatisation des tâches (cron)](#automatisation-des-tâches-cron)) :
 
 ```bash
-# Toutes les 5 à 15 minutes : rappels de prise à venir
+# Toutes les 15 minutes : rappels de prise à venir
 python manage.py envoyer_rappels_prises --fenetre-minutes 15
 
-# Une fois par jour : alertes de stock bas
+# Une fois par jour, à 3h (heure de Paris) : alertes de stock bas
 python manage.py verifier_alertes_stock --delai-relance-heures 24
 ```
+
+## Automatisation des tâches (cron)
+
+Trois commandes de management doivent tourner en continu pour que le suivi
+des prises, les rappels et les alertes de stock restent à jour. Avec Docker,
+un service `cron` dédié (`docker-compose.yml`, code dans `backend/cron/`)
+s'en charge automatiquement — rien à configurer manuellement :
+
+| Commande | Fréquence |
+|---|---|
+| `generer_prises_attendues --jours 30` | Tous les jours à 2h (heure de Paris) |
+| `envoyer_rappels_prises --fenetre-minutes 15` | Toutes les 15 minutes |
+| `verifier_alertes_stock --delai-relance-heures 24` | Tous les jours à 3h (heure de Paris) |
+
+Détails :
+
+- Le service `cron` construit **la même image** que `backend` (même
+  `Dockerfile`) mais démarre `cron` en tâche de fond au lieu du serveur Django
+  — voir `backend/cron/entrypoint.sh`.
+- Les horaires sont définis dans `backend/cron/crontab` ; ce fichier étant
+  monté en volume comme le reste de `backend/`, modifier les horaires ne
+  nécessite qu'un **Redeploy** (redémarrage du conteneur), pas un rebuild.
+- Les logs des exécutions sont visibles via `docker compose logs -f cron`.
+- Sans Docker, ces trois commandes doivent être planifiées manuellement (cron
+  système, tâche planifiée, etc.) en pointant vers le même environnement
+  Python que le serveur applicatif.
 
 ## Vérification des interactions médicamenteuses (palier 5)
 

@@ -28,11 +28,13 @@ Code style: PEP 8, formatted with `black`, imports sorted with `isort` (per CONT
 Domain management commands (see README.md for full flag details):
 ```bash
 python manage.py import_bdpm --fichier ./CIS_bdpm.txt --fichier-composition ./CIS_COMPO_bdpm.txt   # import référentiel médicaments (BDPM), idempotent
-python manage.py generer_prises_attendues --jours 30           # pre-generate expected doses for régulière prescriptions (run daily via cron)
-python manage.py envoyer_rappels_prises --fenetre-minutes 15   # upcoming-dose reminders (run every 5-15 min via cron)
-python manage.py verifier_alertes_stock --delai-relance-heures 24  # low-stock alerts (run daily via cron)
+python manage.py generer_prises_attendues --jours 30           # pre-generate expected doses for régulière prescriptions (automated, see below)
+python manage.py envoyer_rappels_prises --fenetre-minutes 15   # upcoming-dose reminders (automated, see below)
+python manage.py verifier_alertes_stock --delai-relance-heures 24  # low-stock alerts (automated, see below)
 python manage.py import_thesaurus --fichier thesaurus.txt      # import ANSM interactions thesaurus (frozen since 2023-09-15, see README)
 ```
+
+These three domain commands are automated by a dedicated `cron` service under Docker (see Docker section below) — no manual cron setup needed in that environment.
 
 ### Frontend (from `frontend/`)
 
@@ -51,7 +53,7 @@ docker compose up --build
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 ```
-Backend on `localhost:8077`→8000, frontend on `localhost:8078`→80 (see `docker-compose.yml`).
+Backend on `localhost:8077`→8000, frontend on `localhost:8078`→80 (see `docker-compose.yml`). A `cron` service (same image/build as `backend`, code in `backend/cron/`) runs `generer_prises_attendues`, `envoyer_rappels_prises`, and `verifier_alertes_stock` on schedule via system cron inside the container (`CRON_TZ=Europe/Paris`); `docker compose logs -f cron` shows executions. The schedule lives in `backend/cron/crontab`, which is bind-mounted like the rest of `backend/`, so schedule/command changes take effect on a plain redeploy (no rebuild needed unless `requirements.txt` changed).
 
 ## Architecture
 
