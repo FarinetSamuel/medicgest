@@ -87,7 +87,7 @@ export function HorairesSection({
             <input
               required
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               value={quantite}
               onChange={(e) => setQuantite(e.target.value)}

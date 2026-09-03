@@ -150,7 +150,7 @@ export function PrescriptionFormModal({
             <input
               required
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               value={doseQuantite}
               onChange={(e) => setDoseQuantite(e.target.value)}
@@ -188,7 +188,7 @@ export function PrescriptionFormModal({
             <label className="block text-sm font-medium mb-1.5">Plafond journalier (facultatif)</label>
             <input
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               value={doseMaxParJour}
               onChange={(e) => setDoseMaxParJour(e.target.value)}

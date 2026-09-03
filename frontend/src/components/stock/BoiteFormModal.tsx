@@ -130,7 +130,7 @@ export function BoiteFormModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium mb-1.5">Quantité initiale</label>
-            <input required type="number" step="0.01" min="0" {...champ("quantite_initiale")} className={champClasse} />
+            <input required type="number" step="1" min="0" {...champ("quantite_initiale")} className={champClasse} />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1.5">
@@ -139,7 +139,7 @@ export function BoiteFormModal({
             <input
               required={!modeCreation}
               type="number"
-              step="0.01"
+              step="1"
               min="0"
               {...champ("quantite_restante")}
               className={champClasse}
@@ -167,7 +167,7 @@ export function BoiteFormModal({
               <label className="block text-xs mb-1">Quantité restante ≤</label>
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 min="0"
                 {...champ("seuil_alerte_quantite")}
                 className={champClasse}
