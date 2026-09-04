@@ -3,6 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 
+/**
+ * Distingue la cause d'un échec de connexion plutôt que d'afficher
+ * systématiquement "mot de passe incorrect" — une absence de réponse HTTP
+ * (CORS, mauvaise URL d'API, serveur injoignable) était auparavant
+ * indiscernable d'un vrai mauvais mot de passe, ce qui a fait perdre du
+ * temps de diagnostic en production.
+ */
+function messageErreurConnexion(err: unknown): string {
+  const reponse = (err as { response?: { status?: number; data?: unknown } })?.response;
+  if (!reponse) {
+    return "Impossible de contacter le serveur. Vérifiez votre connexion ou réessayez plus tard.";
+  }
+  if (reponse.status === 401) {
+    return "Email ou mot de passe incorrect.";
+  }
+  const donnees = reponse.data as { non_field_errors?: string[] } | undefined;
+  if (reponse.status === 400 && donnees?.non_field_errors?.length) {
+    return donnees.non_field_errors[0];
+  }
+  return "Erreur du serveur, réessayez plus tard.";
+}
+
 export function Connexion() {
   const { connexion } = useAuth();
   const navigate = useNavigate();
@@ -19,8 +41,8 @@ export function Connexion() {
       await connexion(email, motDePasse);
       toast.success("Connexion réussie");
       navigate("/");
-    } catch {
-      setErreur("Email ou mot de passe incorrect.");
+    } catch (err) {
+      setErreur(messageErreurConnexion(err));
     } finally {
       setEnCours(false);
     }

@@ -82,7 +82,15 @@ export function Prescriptions() {
 
   const patientSelectionne = patients.find((p) => p.id === patientSelectionneId) ?? null;
   const peutCreer = (role === "admin" || role === "medecin") && !!patientSelectionneId;
-  const peutModifier = role === "admin" || role === "medecin" || role === "patient";
+  // Statut de la prescription et horaires programmés : réservés à
+  // admin/médecin côté backend (PeutAccederALaPrescription limite le
+  // patient à la lecture seule, HoraireProgrammeViewSet exige
+  // EstAdminOuMedecin) — un patient ne peut pas modifier son propre
+  // schéma posologique, décision clinique du médecin.
+  const peutModifierPrescription = role === "admin" || role === "medecin";
+  // Enregistrement des prises : le patient garde un accès complet sur ses
+  // propres prises (auto-enregistrement d'une prise de réserve).
+  const peutModifierPrises = role === "admin" || role === "medecin" || role === "patient";
   const peutSupprimer = role === "admin";
 
   return (
@@ -190,7 +198,8 @@ export function Prescriptions() {
                 <PrescriptionCard
                   key={p.id}
                   prescription={p}
-                  peutModifier={peutModifier}
+                  peutModifierPrescription={peutModifierPrescription}
+                  peutModifierPrises={peutModifierPrises}
                   peutSupprimer={peutSupprimer}
                   onModifiee={remplacerPrescription}
                   onSupprimee={retirerPrescription}

@@ -16,13 +16,15 @@ const STATUTS: Record<Prescription["statut"], { label: string; ton: "danger" | "
 
 export function PrescriptionCard({
   prescription,
-  peutModifier,
+  peutModifierPrescription,
+  peutModifierPrises,
   peutSupprimer,
   onModifiee,
   onSupprimee,
 }: {
   prescription: Prescription;
-  peutModifier: boolean;
+  peutModifierPrescription: boolean;
+  peutModifierPrises: boolean;
   peutSupprimer: boolean;
   onModifiee: (prescription: Prescription) => void;
   onSupprimee: (id: string) => void;
@@ -91,7 +93,7 @@ export function PrescriptionCard({
             <HorairesSection
               prescriptionId={prescription.id}
               horaires={prescription.horaires}
-              peutModifier={peutModifier}
+              peutModifier={peutModifierPrescription}
               onHoraireAjoute={ajouterHoraire}
               onHoraireModifie={modifierHoraire}
             />
@@ -101,12 +103,12 @@ export function PrescriptionCard({
             prescriptionId={prescription.id}
             typePrise={prescription.type_prise}
             doseQuantiteDefaut={prescription.dose_quantite}
-            peutModifier={peutModifier}
+            peutModifier={peutModifierPrises}
           />
 
-          {(peutModifier || peutSupprimer) && (
+          {(peutModifierPrescription || peutSupprimer) && (
             <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border-light)] dark:border-[var(--color-border-dark)]">
-              {peutModifier ? (
+              {peutModifierPrescription ? (
                 <select
                   value={prescription.statut}
                   onChange={(e) => changerStatut(e.target.value as Prescription["statut"])}
