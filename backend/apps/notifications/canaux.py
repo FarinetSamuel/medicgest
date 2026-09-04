@@ -3,10 +3,10 @@ Envoi effectif d'une Notification selon son canal.
 
 État réel de chaque canal (pas d'approximation sur ce qui fonctionne) :
 
-- EMAIL : pleinement fonctionnel. Utilise EMAIL_BACKEND (settings.py),
-  actuellement "console" (affiche l'e-mail dans les logs plutôt que de
-  l'envoyer réellement) — à remplacer par un vrai backend SMTP en
-  production (voir .env.example, EMAIL_* à ajouter).
+- EMAIL : pleinement fonctionnel. Utilise EMAIL_BACKEND (settings.py) —
+  "console" par défaut (affiche l'e-mail dans les logs sans l'envoyer),
+  ou un vrai backend SMTP si EMAIL_BACKEND/EMAIL_HOST etc. sont réglés
+  dans le .env (voir .env.example).
 
 - SMS : l'interface est prête, mais AUCUN fournisseur SMS n'est configuré
   (Twilio, OVHcloud SMS...) car cela nécessite un compte payant et des
