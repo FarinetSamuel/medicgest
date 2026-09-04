@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -13,9 +14,10 @@ from apps.utilisateurs.models import ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
 from apps.patients.models import PatientMedecin
 
+from .admin import ConfigurationEmailForm
 from .canaux import envoyer_notification
 from .logique import generer_alertes_rupture_stock, generer_alertes_stock, generer_rappels_prises_a_venir
-from .models import Notification
+from .models import ConfigurationEmail, Notification
 
 
 def creer_utilisateur_avec_role(email, role):
@@ -265,3 +267,89 @@ class EnvoyerNotificationTest(TestCase):
         )
         with self.assertRaises(NotImplementedError):
             envoyer_notification(notification)
+
+    def test_email_utilise_la_configuration_smtp_active_si_presente(self):
+        ConfigurationEmail.objects.create(
+            actif=True,
+            hote="smtp.example.com",
+            port=2525,
+            identifiant="compte",
+            mot_de_passe="secret",
+            utiliser_tls=True,
+            adresse_expediteur="alertes@example.com",
+        )
+        notification = Notification.objects.create(
+            destinataire=self.user_patient,
+            canal=Notification.Canal.EMAIL,
+            categorie=Notification.Categorie.AUTRE,
+            titre="Test",
+            message="Contenu de test",
+        )
+        with patch("apps.notifications.canaux.get_connection") as mock_get_connection:
+            envoyer_notification(notification)
+            mock_get_connection.assert_called_once_with(
+                backend="django.core.mail.backends.smtp.EmailBackend",
+                host="smtp.example.com",
+                port=2525,
+                username="compte",
+                password="secret",
+                use_tls=True,
+                use_ssl=False,
+            )
+        notification.refresh_from_db()
+        self.assertEqual(notification.statut, Notification.Statut.ENVOYEE)
+
+    def test_email_ignore_la_configuration_smtp_si_inactive(self):
+        ConfigurationEmail.objects.create(actif=False, hote="smtp.example.com")
+        notification = Notification.objects.create(
+            destinataire=self.user_patient,
+            canal=Notification.Canal.EMAIL,
+            categorie=Notification.Categorie.AUTRE,
+            titre="Test",
+            message="Contenu de test",
+        )
+        envoyer_notification(notification)
+        notification.refresh_from_db()
+        self.assertEqual(notification.statut, Notification.Statut.ENVOYEE)
+        # Backend console/locmem (settings), pas SMTP : capturé normalement.
+        self.assertEqual(len(mail.outbox), 1)
+
+
+class ConfigurationEmailFormTest(TestCase):
+    def test_mot_de_passe_vide_conserve_la_valeur_existante(self):
+        config = ConfigurationEmail.objects.create(actif=True, hote="smtp.example.com", mot_de_passe="ancien-secret")
+        form = ConfigurationEmailForm(
+            data={
+                "actif": True,
+                "hote": "smtp.example.com",
+                "port": 587,
+                "identifiant": "",
+                "mot_de_passe": "",
+                "utiliser_tls": True,
+                "utiliser_ssl": False,
+                "adresse_expediteur": "",
+            },
+            instance=config,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        instance = form.save()
+        self.assertEqual(instance.mot_de_passe, "ancien-secret")
+
+    def test_mot_de_passe_renseigne_remplace_la_valeur_existante(self):
+        config = ConfigurationEmail.objects.create(actif=True, hote="smtp.example.com", mot_de_passe="ancien-secret")
+        form = ConfigurationEmailForm(
+            data={
+                "actif": True,
+                "hote": "smtp.example.com",
+                "port": 587,
+                "identifiant": "",
+                "mot_de_passe": "nouveau-secret",
+                "utiliser_tls": True,
+                "utiliser_ssl": False,
+                "adresse_expediteur": "",
+            },
+            instance=config,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        instance = form.save()
+        self.assertEqual(instance.mot_de_passe, "nouveau-secret")

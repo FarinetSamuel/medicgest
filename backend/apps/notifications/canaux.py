@@ -3,10 +3,11 @@ Envoi effectif d'une Notification selon son canal.
 
 État réel de chaque canal (pas d'approximation sur ce qui fonctionne) :
 
-- EMAIL : pleinement fonctionnel. Utilise EMAIL_BACKEND (settings.py) —
-  "console" par défaut (affiche l'e-mail dans les logs sans l'envoyer),
-  ou un vrai backend SMTP si EMAIL_BACKEND/EMAIL_HOST etc. sont réglés
-  dans le .env (voir .env.example).
+- EMAIL : pleinement fonctionnel. Priorité à ConfigurationEmail (admin
+  Django, éditable sans redéploiement) si "actif" ; sinon EMAIL_BACKEND
+  de settings.py — "console" par défaut (affiche l'e-mail dans les logs
+  sans l'envoyer), ou un vrai backend SMTP si EMAIL_BACKEND/EMAIL_HOST
+  etc. sont réglés dans le .env (voir .env.example).
 
 - SMS : l'interface est prête, mais AUCUN fournisseur SMS n'est configuré
   (Twilio, OVHcloud SMS...) car cela nécessite un compte payant et des
@@ -22,7 +23,7 @@ Envoi effectif d'une Notification selon son canal.
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import get_connection, send_mail
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -41,16 +42,33 @@ def envoyer_notification(notification) -> None:
 
 
 def _envoyer_email(notification) -> None:
-    from .models import Notification
+    from .models import ConfigurationEmail, Notification
 
     destinataire_email = notification.destinataire.email
+    expediteur = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+    connexion = None
+
+    config = ConfigurationEmail.charger()
+    if config and config.actif:
+        connexion = get_connection(
+            backend="django.core.mail.backends.smtp.EmailBackend",
+            host=config.hote,
+            port=config.port,
+            username=config.identifiant,
+            password=config.mot_de_passe,
+            use_tls=config.utiliser_tls,
+            use_ssl=config.utiliser_ssl,
+        )
+        expediteur = config.adresse_expediteur or expediteur
+
     try:
         send_mail(
             subject=notification.titre,
             message=notification.message,
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            from_email=expediteur,
             recipient_list=[destinataire_email],
             fail_silently=False,
+            connection=connexion,
         )
         notification.statut = Notification.Statut.ENVOYEE
         notification.date_envoi = timezone.now()

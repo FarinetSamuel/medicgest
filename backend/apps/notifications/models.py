@@ -68,3 +68,47 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"[{self.get_canal_display()}] {self.titre} → {self.destinataire}"
+
+
+class ConfigurationEmail(models.Model):
+    """
+    Réglages SMTP éditables depuis l'admin Django, sans toucher au .env ni
+    redéployer. Ligne unique (singleton, voir save()) : "actif=False" (ou
+    absente) retombe sur EMAIL_BACKEND de settings.py (console par défaut,
+    ou un backend SMTP fixé via .env) — voir apps.notifications.canaux.
+    """
+
+    actif = models.BooleanField(
+        default=False,
+        help_text="Active l'envoi SMTP réel avec ces réglages. Décoché : "
+        "les e-mails suivent la configuration du fichier .env (console par défaut).",
+    )
+    hote = models.CharField("Hôte SMTP", max_length=255, blank=True)
+    port = models.PositiveIntegerField("Port", default=587)
+    identifiant = models.CharField("Identifiant", max_length=255, blank=True)
+    mot_de_passe = models.CharField("Mot de passe / clé API", max_length=255, blank=True)
+    utiliser_tls = models.BooleanField("Utiliser TLS", default=True)
+    utiliser_ssl = models.BooleanField("Utiliser SSL", default=False)
+    adresse_expediteur = models.CharField(
+        "Adresse d'expédition", max_length=255, blank=True,
+        help_text="Laisser vide pour utiliser DEFAULT_FROM_EMAIL du .env.",
+    )
+    date_modification = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuration e-mail"
+        verbose_name_plural = "Configuration e-mail"
+
+    def __str__(self):
+        return "Configuration e-mail"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        pass
+
+    @classmethod
+    def charger(cls):
+        return cls.objects.first()
