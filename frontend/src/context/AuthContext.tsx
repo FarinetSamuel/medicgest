@@ -10,6 +10,8 @@ export interface UtilisateurConnecte {
   nom: string;
   role: Role;
   patient_id?: string;
+  /** Permissions Django ("app_label.codename"), y compris via les Groups. */
+  permissions: string[];
 }
 
 interface AuthContextValue {

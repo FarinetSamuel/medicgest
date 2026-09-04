@@ -1,6 +1,8 @@
 from rest_framework import viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 
+from apps.patients.permissions import medecin_suit_patient
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
 
 from .models import Boite, MouvementStock
@@ -33,6 +35,24 @@ class BoiteViewSet(viewsets.ModelViewSet):
         if user.role == ROLE_PATIENT:
             return base.filter(patient__utilisateur=user)
         return base.none()
+
+    def perform_create(self, serializer):
+        # has_object_permission n'est jamais appelée à la création (pas
+        # encore d'objet) : sans ce contrôle explicite, un utilisateur
+        # authentifié pourrait créer une boîte pour un patient qu'il ne
+        # suit pas / qui n'est pas lui-même (même faille que corrigée sur
+        # PriseViewSet.perform_create).
+        user = self.request.user
+        patient = serializer.validated_data["patient"]
+        if user.role == ROLE_MEDECIN and not medecin_suit_patient(user, patient):
+            raise PermissionDenied(
+                "Vous ne pouvez ajouter une boîte que pour un patient que vous suivez."
+            )
+        if user.role == ROLE_PATIENT and patient.utilisateur_id != user.id:
+            raise PermissionDenied(
+                "Vous ne pouvez ajouter une boîte que pour votre propre stock."
+            )
+        serializer.save()
 
 
 class MouvementStockViewSet(viewsets.ReadOnlyModelViewSet):

@@ -82,12 +82,22 @@ export function Prescriptions() {
 
   const patientSelectionne = patients.find((p) => p.id === patientSelectionneId) ?? null;
   const peutCreer = (role === "admin" || role === "medecin") && !!patientSelectionneId;
-  // Statut de la prescription et horaires programmés : réservés à
-  // admin/médecin côté backend (PeutAccederALaPrescription limite le
-  // patient à la lecture seule, HoraireProgrammeViewSet exige
-  // EstAdminOuMedecin) — un patient ne peut pas modifier son propre
-  // schéma posologique, décision clinique du médecin.
+  // Statut de la prescription : réservé à admin/médecin côté backend
+  // (PeutAccederALaPrescription limite le patient à la lecture seule) —
+  // décision clinique, un patient ne change pas lui-même le statut de sa
+  // prescription.
   const peutModifierPrescription = role === "admin" || role === "medecin";
+  // Horaires programmés : admin/médecin toujours, ou un patient qui
+  // détient explicitement les permissions Django add_/change_
+  // horaireprogramme (accordées via un Group dans l'admin) — le backend
+  // (HoraireProgrammeViewSet) applique la même règle.
+  const permissions = utilisateur?.permissions ?? [];
+  const peutGererHoraires =
+    role === "admin" ||
+    role === "medecin" ||
+    (role === "patient" &&
+      permissions.includes("prescriptions.add_horaireprogramme") &&
+      permissions.includes("prescriptions.change_horaireprogramme"));
   // Enregistrement des prises : le patient garde un accès complet sur ses
   // propres prises (auto-enregistrement d'une prise de réserve).
   const peutModifierPrises = role === "admin" || role === "medecin" || role === "patient";
@@ -199,6 +209,7 @@ export function Prescriptions() {
                   key={p.id}
                   prescription={p}
                   peutModifierPrescription={peutModifierPrescription}
+                  peutGererHoraires={peutGererHoraires}
                   peutModifierPrises={peutModifierPrises}
                   peutSupprimer={peutSupprimer}
                   onModifiee={remplacerPrescription}

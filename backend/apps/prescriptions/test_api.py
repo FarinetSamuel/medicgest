@@ -1,6 +1,6 @@
 import datetime
 
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from rest_framework.test import APITestCase
 from django.utils import timezone
 
@@ -8,7 +8,7 @@ from apps.medicaments.models import Medicament
 from apps.patients.models import Patient, PatientMedecin
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
-from .models import Prescription, Prise
+from .models import HoraireProgramme, Prescription, Prise
 
 
 def creer_utilisateur_avec_role(email, role):
@@ -292,3 +292,92 @@ class PriseAPITest(APITestCase):
         self.client.force_authenticate(autre_medecin)
         response = self.client.get("/api/v1/prises/")
         self.assertEqual(response.data["results"], [])
+
+
+class HoraireProgrammeAPITest(APITestCase):
+    """
+    Par défaut un patient n'a qu'un accès en lecture aux horaires
+    programmés (décision clinique du médecin). Il peut y accéder en
+    écriture uniquement si le compte détient explicitement les
+    permissions Django add/change/delete_horaireprogramme — accordées via
+    un Group dans l'admin — et seulement sur ses propres prescriptions.
+    """
+
+    def setUp(self):
+        self.medecin = creer_utilisateur_avec_role("medapi5@example.com", ROLE_MEDECIN)
+        self.user_patient = creer_utilisateur_avec_role("patapi3@example.com", ROLE_PATIENT)
+        self.autre_user_patient = creer_utilisateur_avec_role("patapi4@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=self.user_patient,
+            numero_dossier="DOS-API-HORAIRE-1",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        self.autre_patient = Patient.objects.create(
+            utilisateur=self.autre_user_patient,
+            numero_dossier="DOS-API-HORAIRE-2",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+        )
+        PatientMedecin.objects.create(patient=self.patient, medecin=self.medecin, actif=True)
+        self.medicament = Medicament.objects.create(code_cis="API5", denomination="TESTOL5")
+        self.prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+
+    def test_patient_sans_permission_django_ne_peut_pas_ajouter_un_horaire(self):
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {"prescription": str(self.prescription.id), "heure": "08:00", "quantite": "1"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(HoraireProgramme.objects.count(), 0)
+
+    def test_patient_avec_permission_django_peut_ajouter_un_horaire_sur_sa_prescription(self):
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_horaireprogramme")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {"prescription": str(self.prescription.id), "heure": "08:00", "quantite": "1"},
+        )
+        self.assertEqual(response.status_code, 201)
+
+    def test_patient_avec_permission_django_ne_peut_pas_ajouter_un_horaire_pour_un_autre_patient(self):
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_horaireprogramme")
+        )
+        autre_prescription = Prescription.objects.create(
+            patient=self.autre_patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {"prescription": str(autre_prescription.id), "heure": "08:00", "quantite": "1"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(HoraireProgramme.objects.count(), 0)
+
+    def test_patient_avec_permission_django_peut_modifier_son_propre_horaire(self):
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="change_horaireprogramme")
+        )
+        horaire = HoraireProgramme.objects.create(prescription=self.prescription, heure="08:00", quantite=1)
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.patch(f"/api/v1/horaires-programmes/{horaire.id}/", {"actif": False})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["actif"])

@@ -1,6 +1,6 @@
 from rest_framework import viewsets
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
 
 from apps.patients.permissions import medecin_suit_patient
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
@@ -65,7 +65,15 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
 
 class HoraireProgrammeViewSet(viewsets.ModelViewSet):
-    """Horaires fixes d'une prescription régulière. Même périmètre que Prescription."""
+    """
+    Horaires fixes d'une prescription régulière. Même périmètre que
+    Prescription pour admin/médecin ; un patient n'y a par défaut qu'un
+    accès en lecture, sauf s'il détient explicitement les permissions
+    Django add_horaireprogramme/change_horaireprogramme/
+    delete_horaireprogramme (accordées via un Group dans l'admin) — dans
+    ce cas il ne peut agir que sur ses propres prescriptions (voir
+    perform_create/get_queryset).
+    """
 
     serializer_class = HoraireProgrammeSerializer
     permission_classes = [IsAuthenticated]
@@ -86,7 +94,7 @@ class HoraireProgrammeViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action in ("create", "update", "partial_update", "destroy"):
-            return [IsAuthenticated(), EstAdminOuMedecin()]
+            return [IsAuthenticated(), (EstAdminOuMedecin | DjangoModelPermissions)()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
@@ -95,6 +103,10 @@ class HoraireProgrammeViewSet(viewsets.ModelViewSet):
         if user.role == ROLE_MEDECIN and not medecin_suit_patient(user, prescription.patient):
             raise PermissionDenied(
                 "Vous ne pouvez ajouter un horaire que pour un patient que vous suivez."
+            )
+        if user.role == ROLE_PATIENT and prescription.patient.utilisateur_id != user.id:
+            raise PermissionDenied(
+                "Vous ne pouvez ajouter un horaire que sur vos propres prescriptions."
             )
         serializer.save()
 

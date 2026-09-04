@@ -74,6 +74,33 @@ class BoiteAPITest(APITestCase):
         response = self.client.get("/api/v1/boites/")
         self.assertEqual(response.data["results"], [])
 
+    def test_autre_patient_ne_peut_pas_creer_une_boite_pour_ce_patient(self):
+        autre_user_patient = creer_utilisateur_avec_role("patstockapi3@example.com", ROLE_PATIENT)
+        self.client.force_authenticate(autre_user_patient)
+        response = self.client.post(
+            "/api/v1/boites/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "quantite_initiale": "30.00",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Boite.objects.count(), 0)
+
+    def test_medecin_non_suiveur_ne_peut_pas_creer_une_boite(self):
+        self.client.force_authenticate(self.medecin_autre)
+        response = self.client.post(
+            "/api/v1/boites/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "quantite_initiale": "30.00",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Boite.objects.count(), 0)
+
     def test_champ_en_alerte_expose_dans_l_api(self):
         Boite.objects.create(
             patient=self.patient, medicament=self.medicament,

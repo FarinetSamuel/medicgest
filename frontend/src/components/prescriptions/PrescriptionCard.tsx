@@ -17,6 +17,7 @@ const STATUTS: Record<Prescription["statut"], { label: string; ton: "danger" | "
 export function PrescriptionCard({
   prescription,
   peutModifierPrescription,
+  peutGererHoraires,
   peutModifierPrises,
   peutSupprimer,
   onModifiee,
@@ -24,6 +25,7 @@ export function PrescriptionCard({
 }: {
   prescription: Prescription;
   peutModifierPrescription: boolean;
+  peutGererHoraires: boolean;
   peutModifierPrises: boolean;
   peutSupprimer: boolean;
   onModifiee: (prescription: Prescription) => void;
@@ -93,7 +95,7 @@ export function PrescriptionCard({
             <HorairesSection
               prescriptionId={prescription.id}
               horaires={prescription.horaires}
-              peutModifier={peutModifierPrescription}
+              peutModifier={peutGererHoraires}
               onHoraireAjoute={ajouterHoraire}
               onHoraireModifie={modifierHoraire}
             />

@@ -37,14 +37,24 @@ class ProfilSerializer(serializers.ModelSerializer):
     nom = serializers.CharField(source="last_name", read_only=True)
     role = serializers.CharField(read_only=True)
     patient_id = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
 
     class Meta:
         model = Utilisateur
-        fields = ["id", "email", "prenom", "nom", "role", "patient_id"]
+        fields = ["id", "email", "prenom", "nom", "role", "patient_id", "permissions"]
 
     def get_patient_id(self, obj):
         fiche = getattr(obj, "fiche_patient", None)
         return str(fiche.id) if fiche else None
+
+    def get_permissions(self, obj):
+        """
+        Permissions Django (individuelles + héritées des Groups, ex.
+        "prescriptions.add_horaireprogramme") — permet au frontend de
+        refléter les autorisations accordées à un patient depuis l'admin,
+        au-delà des droits de base par rôle.
+        """
+        return sorted(obj.get_all_permissions())
 
 
 def valider_specialite(attrs, instance=None):
