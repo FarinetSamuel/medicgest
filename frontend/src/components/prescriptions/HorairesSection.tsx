@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
+import { Pencil, Plus } from "lucide-react";
 import { api } from "../../lib/api";
 import { champClasse } from "../../lib/ui";
 import type { HoraireProgramme } from "../../types";
@@ -22,6 +22,11 @@ export function HorairesSection({
   const [heure, setHeure] = useState("08:00");
   const [quantite, setQuantite] = useState("1");
   const [enCours, setEnCours] = useState(false);
+
+  const [horaireEnEdition, setHoraireEnEdition] = useState<string | null>(null);
+  const [heureEdition, setHeureEdition] = useState("");
+  const [quantiteEdition, setQuantiteEdition] = useState("");
+  const [enregistrementEnCours, setEnregistrementEnCours] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,6 +56,34 @@ export function HorairesSection({
       onHoraireModifie(data);
     } catch {
       toast.error("Impossible de modifier cet horaire");
+    }
+  }
+
+  function commencerEdition(horaire: HoraireProgramme) {
+    setHoraireEnEdition(horaire.id);
+    setHeureEdition(horaire.heure.slice(0, 5));
+    setQuantiteEdition(horaire.quantite);
+  }
+
+  function annulerEdition() {
+    setHoraireEnEdition(null);
+  }
+
+  async function enregistrerEdition(e: FormEvent, horaire: HoraireProgramme) {
+    e.preventDefault();
+    setEnregistrementEnCours(true);
+    try {
+      const { data } = await api.patch<HoraireProgramme>(`/horaires-programmes/${horaire.id}/`, {
+        heure: heureEdition,
+        quantite: quantiteEdition,
+      });
+      onHoraireModifie(data);
+      setHoraireEnEdition(null);
+      toast.success("Horaire modifié");
+    } catch {
+      toast.error("Impossible de modifier cet horaire");
+    } finally {
+      setEnregistrementEnCours(false);
     }
   }
 
@@ -117,21 +150,80 @@ export function HorairesSection({
         </p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
-          {horaires.map((h) => (
-            <button
-              key={h.id}
-              onClick={() => peutModifier && basculerActif(h)}
-              disabled={!peutModifier}
-              title={peutModifier ? "Cliquer pour activer/désactiver" : undefined}
-              className={`text-xs px-2.5 py-1 rounded-full border ${
-                h.actif
-                  ? "border-[var(--color-brand-500)] text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)]"
-                  : "border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] line-through"
-              }`}
-            >
-              {h.heure.slice(0, 5)} · {h.quantite}
-            </button>
-          ))}
+          {horaires.map((h) =>
+            horaireEnEdition === h.id ? (
+              <form
+                key={h.id}
+                onSubmit={(e) => enregistrerEdition(e, h)}
+                className="flex items-end gap-2 border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-2"
+              >
+                <div>
+                  <label className="block text-xs mb-1">Heure</label>
+                  <input
+                    required
+                    type="time"
+                    value={heureEdition}
+                    onChange={(e) => setHeureEdition(e.target.value)}
+                    className={`${champClasse} py-1.5`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Quantité</label>
+                  <input
+                    required
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={quantiteEdition}
+                    onChange={(e) => setQuantiteEdition(e.target.value)}
+                    className={`${champClasse} py-1.5 w-24`}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={enregistrementEnCours}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+                >
+                  Enregistrer
+                </button>
+                <button
+                  type="button"
+                  onClick={annulerEdition}
+                  className="text-xs px-2 py-1.5 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+                >
+                  Annuler
+                </button>
+              </form>
+            ) : (
+              <div
+                key={h.id}
+                className={`flex items-center gap-1 text-xs pl-2.5 pr-1 py-1 rounded-full border ${
+                  h.actif
+                    ? "border-[var(--color-brand-500)] text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)]"
+                    : "border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+                }`}
+              >
+                <button
+                  onClick={() => peutModifier && basculerActif(h)}
+                  disabled={!peutModifier}
+                  title={peutModifier ? "Cliquer pour activer/désactiver" : undefined}
+                  className={h.actif ? "" : "line-through"}
+                >
+                  {h.heure.slice(0, 5)} · {h.quantite}
+                </button>
+                {peutModifier && (
+                  <button
+                    onClick={() => commencerEdition(h)}
+                    aria-label="Modifier l'heure ou la quantité"
+                    title="Modifier l'heure ou la quantité"
+                    className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                  >
+                    <Pencil size={11} />
+                  </button>
+                )}
+              </div>
+            )
+          )}
         </div>
       )}
     </div>
