@@ -132,7 +132,7 @@ class PrescriptionAPITest(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(str(response.data["medecin_prescripteur"]), str(self.medecin_suiveur.id))
 
-    def test_patient_ne_peut_pas_prescrire(self):
+    def test_patient_sans_permission_django_ne_peut_pas_prescrire(self):
         self.client.force_authenticate(self.user_patient)
         response = self.client.post(
             "/api/v1/prescriptions/",
@@ -146,6 +146,81 @@ class PrescriptionAPITest(APITestCase):
             },
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_patient_avec_permission_django_peut_prescrire_pour_lui_meme(self):
+        """
+        Même principe que HoraireProgrammeViewSet : un patient n'a par
+        défaut qu'un accès en lecture, sauf s'il détient explicitement la
+        permission Django add_prescription (accordée via un Group dans
+        l'admin) — dans ce cas il peut créer une prescription pour
+        lui-même (ex. suivi d'un médicament sans prescripteur).
+        """
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(response.data["medecin_prescripteur"])
+
+    def test_patient_avec_permission_django_ne_peut_pas_prescrire_pour_un_autre_patient(self):
+        autre_user_patient = creer_utilisateur_avec_role("patapi2@example.com", ROLE_PATIENT)
+        Patient.objects.create(
+            utilisateur=autre_user_patient,
+            numero_dossier="DOS-API-PRESC-2",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        # autre_user_patient détient lui aussi la permission, pour isoler
+        # le contrôle de propriété (perform_create) de la permission
+        # Django (has_permission) : même autorisé, il ne peut prescrire
+        # que pour lui-même, pas pour self.patient.
+        autre_user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(autre_user_patient)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_patient_avec_permission_django_ne_peut_pas_s_attribuer_un_prescripteur(self):
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "medecin_prescripteur": str(self.medecin_suiveur.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIsNone(response.data["medecin_prescripteur"])
 
     def test_patient_voit_ses_prescriptions_en_lecture_seule(self):
         prescription = Prescription.objects.create(

@@ -17,7 +17,12 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
     - admin : accès total
     - médecin : crée/modifie des prescriptions pour ses patients suivis
       (devient automatiquement le medecin_prescripteur)
-    - patient : lecture seule de ses propres prescriptions
+    - patient : lecture seule de ses propres prescriptions par défaut,
+      sauf s'il détient explicitement la permission Django
+      add_prescription (accordée via un Group dans l'admin) — dans ce
+      cas il peut créer une prescription pour lui-même (ex. suivi d'un
+      médicament sans prescripteur), sans jamais pouvoir se déclarer
+      medecin_prescripteur.
     """
 
     serializer_class = PrescriptionSerializer
@@ -38,7 +43,7 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == "create":
-            return [IsAuthenticated(), EstAdminOuMedecin()]
+            return [IsAuthenticated(), (EstAdminOuMedecin | DjangoModelPermissions)()]
         return super().get_permissions()
 
     def perform_create(self, serializer):
@@ -50,6 +55,15 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                     "Vous ne pouvez prescrire que pour un patient que vous suivez."
                 )
             serializer.save(medecin_prescripteur=user)
+        elif user.role == ROLE_PATIENT:
+            if patient.utilisateur_id != user.id:
+                raise PermissionDenied(
+                    "Vous ne pouvez créer une prescription que pour vous-même."
+                )
+            # Même remarque que pour un médecin (voir plus bas) : le
+            # champ n'est pas usurpable, on l'écrase quel que soit le
+            # payload envoyé par le patient.
+            serializer.save(medecin_prescripteur=None)
         else:
             # Admin : le prescripteur doit être précisé côté client
             # (un admin peut rédiger une prescription au nom d'un médecin

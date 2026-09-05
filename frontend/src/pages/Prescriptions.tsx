@@ -81,17 +81,24 @@ export function Prescriptions() {
   });
 
   const patientSelectionne = patients.find((p) => p.id === patientSelectionneId) ?? null;
-  const peutCreer = (role === "admin" || role === "medecin") && !!patientSelectionneId;
   // Statut de la prescription : réservé à admin/médecin côté backend
   // (PeutAccederALaPrescription limite le patient à la lecture seule) —
   // décision clinique, un patient ne change pas lui-même le statut de sa
   // prescription.
   const peutModifierPrescription = role === "admin" || role === "medecin";
+  const permissions = utilisateur?.permissions ?? [];
+  // Création : admin/médecin toujours, ou un patient qui détient
+  // explicitement la permission Django add_prescription (accordée via un
+  // Group dans l'admin) — le backend (PrescriptionViewSet) applique la
+  // même règle. Voir aussi peutGererHoraires ci-dessous pour le même
+  // principe appliqué aux horaires programmés.
+  const peutCreer =
+    (role === "admin" || role === "medecin" || (role === "patient" && permissions.includes("prescriptions.add_prescription"))) &&
+    !!patientSelectionneId;
   // Horaires programmés : admin/médecin toujours, ou un patient qui
   // détient explicitement les permissions Django add_/change_
   // horaireprogramme (accordées via un Group dans l'admin) — le backend
   // (HoraireProgrammeViewSet) applique la même règle.
-  const permissions = utilisateur?.permissions ?? [];
   const peutGererHoraires =
     role === "admin" ||
     role === "medecin" ||
@@ -171,14 +178,16 @@ export function Prescriptions() {
         )}
 
         <div className="space-y-3">
-          {role !== "patient" && (
+          {(role !== "patient" || peutCreer) && (
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
-                {patientSelectionne
-                  ? `${patientSelectionne.utilisateur_prenom} ${patientSelectionne.utilisateur_nom}`.trim() ||
-                    patientSelectionne.numero_dossier
-                  : "Aucun patient sélectionné"}
-              </h2>
+              {role !== "patient" && (
+                <h2 className="text-sm font-semibold text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                  {patientSelectionne
+                    ? `${patientSelectionne.utilisateur_prenom} ${patientSelectionne.utilisateur_nom}`.trim() ||
+                      patientSelectionne.numero_dossier
+                    : "Aucun patient sélectionné"}
+                </h2>
+              )}
               {peutCreer && (
                 <button
                   onClick={() => setModalCreation(true)}
@@ -223,7 +232,7 @@ export function Prescriptions() {
 
       {modalCreation && patientSelectionneId && (
         <PrescriptionFormModal
-          patientId={patientSelectionneId}
+          patientId={patientSelectionneId === "moi" ? (utilisateur?.patient_id ?? "") : patientSelectionneId}
           onFermer={() => setModalCreation(false)}
           onCree={ajouterPrescription}
         />
