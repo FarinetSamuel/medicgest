@@ -5,7 +5,7 @@ import { champClasse } from "../../lib/ui";
 import { api, recupererToutesPages } from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { MedicamentSelect } from "./MedicamentSelect";
-import type { Medicament, Prescription, UtilisateurCompte } from "../../types";
+import type { Medicament, PatientMedecin, Prescription, UtilisateurCompte } from "../../types";
 
 export function PrescriptionFormModal({
   patientId,
@@ -18,10 +18,12 @@ export function PrescriptionFormModal({
 }) {
   const { utilisateur } = useAuth();
   const estAdmin = utilisateur?.role === "admin";
+  const estPatient = utilisateur?.role === "patient";
 
   const [medicament, setMedicament] = useState<Medicament | null>(null);
   const [medecinPrescripteur, setMedecinPrescripteur] = useState("");
   const [medecins, setMedecins] = useState<UtilisateurCompte[] | null>(null);
+  const [medecinsSuiveurs, setMedecinsSuiveurs] = useState<PatientMedecin[] | null>(null);
   const [typePrise, setTypePrise] = useState<"reguliere" | "reserve">("reguliere");
   const [doseQuantite, setDoseQuantite] = useState("");
   const [doseUnite, setDoseUnite] = useState("");
@@ -43,6 +45,20 @@ export function PrescriptionFormModal({
       setMedecins(tous.filter((u) => u.role === "medecin" && u.actif));
     })();
   }, [estAdmin]);
+
+  // Patient (avec la permission Django add_prescription) : medecin_prescripteur
+  // n'est pas nullable en base, donc même pour un patient la vue exige un
+  // médecin — obligatoirement l'un de ses médecins suiveurs actifs (voir
+  // PrescriptionViewSet.perform_create). L'endpoint /suivis-medecin/ ne
+  // propose pas de filtre par patient : on récupère tout puis on filtre
+  // côté client (déjà limité à ses propres suivis côté serveur).
+  useEffect(() => {
+    if (!estPatient) return;
+    (async () => {
+      const tous = await recupererToutesPages<PatientMedecin>("/suivis-medecin/");
+      setMedecinsSuiveurs(tous.filter((s) => s.patient === patientId && s.actif));
+    })();
+  }, [estPatient, patientId]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -68,7 +84,7 @@ export function PrescriptionFormModal({
       } else {
         if (doseMaxParJour) payload.dose_max_par_jour = doseMaxParJour;
       }
-      if (estAdmin) payload.medecin_prescripteur = medecinPrescripteur;
+      if (estAdmin || estPatient) payload.medecin_prescripteur = medecinPrescripteur;
 
       const { data } = await api.post<Prescription>("/prescriptions/", payload);
       toast.success("Prescription créée");
@@ -116,6 +132,38 @@ export function PrescriptionFormModal({
                 {medecins.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.first_name} {m.last_name} ({m.email})
+                  </option>
+                ))}
+              </select>
+            )}
+            {erreurs.medecin_prescripteur && (
+              <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.medecin_prescripteur}</p>
+            )}
+          </div>
+        )}
+
+        {estPatient && (
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Médecin prescripteur</label>
+            {medecinsSuiveurs === null ? (
+              <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                Chargement...
+              </p>
+            ) : medecinsSuiveurs.length === 0 ? (
+              <p className="text-xs text-[var(--color-danger)]">
+                Aucun médecin suiveur actif : impossible de créer une prescription sans médecin.
+              </p>
+            ) : (
+              <select
+                required
+                value={medecinPrescripteur}
+                onChange={(e) => setMedecinPrescripteur(e.target.value)}
+                className={champClasse}
+              >
+                <option value="">Choisir un médecin...</option>
+                {medecinsSuiveurs.map((s) => (
+                  <option key={s.id} value={s.medecin}>
+                    {s.medecin_email}
                   </option>
                 ))}
               </select>

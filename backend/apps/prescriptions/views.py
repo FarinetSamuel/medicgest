@@ -20,9 +20,10 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
     - patient : lecture seule de ses propres prescriptions par défaut,
       sauf s'il détient explicitement la permission Django
       add_prescription (accordée via un Group dans l'admin) — dans ce
-      cas il peut créer une prescription pour lui-même (ex. suivi d'un
-      médicament sans prescripteur), sans jamais pouvoir se déclarer
-      medecin_prescripteur.
+      cas il peut créer une prescription pour lui-même, à condition de
+      désigner l'un de ses médecins suiveurs actifs comme
+      medecin_prescripteur (le champ n'est pas nullable en base : une
+      prescription est toujours rattachée à un médecin).
     """
 
     serializer_class = PrescriptionSerializer
@@ -60,10 +61,18 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied(
                     "Vous ne pouvez créer une prescription que pour vous-même."
                 )
-            # Même remarque que pour un médecin (voir plus bas) : le
-            # champ n'est pas usurpable, on l'écrase quel que soit le
-            # payload envoyé par le patient.
-            serializer.save(medecin_prescripteur=None)
+            # medecin_prescripteur n'est pas nullable en base (une
+            # prescription est toujours rattachée à un médecin) : le
+            # patient doit désigner l'un de ses médecins suiveurs actifs,
+            # jamais un médecin arbitraire.
+            medecin_prescripteur = serializer.validated_data.get("medecin_prescripteur")
+            if not medecin_prescripteur or not medecin_suit_patient(medecin_prescripteur, patient):
+                raise ValidationError(
+                    {
+                        "medecin_prescripteur": "Choisissez l'un de vos médecins suiveurs actifs.",
+                    }
+                )
+            serializer.save(medecin_prescripteur=medecin_prescripteur)
         else:
             # Admin : le prescripteur doit être précisé côté client
             # (un admin peut rédiger une prescription au nom d'un médecin

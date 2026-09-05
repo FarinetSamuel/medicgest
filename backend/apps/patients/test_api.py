@@ -306,6 +306,49 @@ class NoteMedicaleAPIPermissionsTest(APITestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class PatientMedecinAPIPermissionsTest(APITestCase):
+    """
+    Un patient ne peut jamais gérer ses suivis médecin (réservé à
+    l'admin), mais doit pouvoir les consulter en lecture seule — utilisé
+    par le frontend pour lui proposer un prescripteur lors de la création
+    d'une prescription (voir PrescriptionViewSet côté app prescriptions).
+    """
+
+    def setUp(self):
+        self.medecin_suiveur = creer_utilisateur_avec_role("medsuivi.a@example.com", ROLE_MEDECIN)
+        self.medecin_autre = creer_utilisateur_avec_role("medsuivi.b@example.com", ROLE_MEDECIN)
+        self.user_patient = creer_utilisateur_avec_role("patientsuivi@example.com", ROLE_PATIENT)
+        self.autre_user_patient = creer_utilisateur_avec_role("patientsuivi2@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=self.user_patient,
+            numero_dossier="DOS-SUIVI-1",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.AUTRE,
+        )
+        self.autre_patient = Patient.objects.create(
+            utilisateur=self.autre_user_patient,
+            numero_dossier="DOS-SUIVI-2",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.AUTRE,
+        )
+        PatientMedecin.objects.create(patient=self.patient, medecin=self.medecin_suiveur, actif=True)
+        PatientMedecin.objects.create(patient=self.autre_patient, medecin=self.medecin_autre, actif=True)
+
+    def test_patient_voit_uniquement_ses_propres_suivis(self):
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.get("/api/v1/suivis-medecin/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([r["patient"] for r in response.data["results"]], [str(self.patient.id)])
+
+    def test_patient_ne_peut_pas_creer_un_suivi(self):
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/suivis-medecin/",
+            {"patient": str(self.patient.id), "medecin": str(self.medecin_autre.id), "actif": True},
+        )
+        self.assertEqual(response.status_code, 403)
+
+
 class MedicamentAPITest(APITestCase):
     def setUp(self):
         from apps.medicaments.models import Medicament

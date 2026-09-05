@@ -130,7 +130,10 @@ class PatientMedecinViewSet(viewsets.ModelViewSet):
     """
     Relations de suivi patient-médecin.
     Gestion réservée à l'admin (établir/révoquer un suivi est une décision
-    administrative) ; un médecin peut consulter ses propres relations.
+    administrative) ; un médecin peut consulter ses propres relations ;
+    un patient peut consulter (lecture seule) la liste de ses médecins
+    suiveurs, nécessaire au frontend pour lui proposer un prescripteur
+    lors de la création d'une prescription (voir PrescriptionViewSet).
     """
 
     serializer_class = PatientMedecinSerializer
@@ -143,6 +146,8 @@ class PatientMedecinViewSet(viewsets.ModelViewSet):
             return base
         if user.role == ROLE_MEDECIN:
             return base.filter(medecin=user)
+        if user.role == ROLE_PATIENT:
+            return base.filter(patient__utilisateur=user)
         return base.none()
 
     def get_permissions(self):

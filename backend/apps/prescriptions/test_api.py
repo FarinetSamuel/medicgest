@@ -147,13 +147,40 @@ class PrescriptionAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    def test_patient_avec_permission_django_peut_prescrire_pour_lui_meme(self):
+    def test_patient_avec_permission_django_peut_prescrire_en_designant_son_medecin_suiveur(self):
         """
         Même principe que HoraireProgrammeViewSet : un patient n'a par
         défaut qu'un accès en lecture, sauf s'il détient explicitement la
         permission Django add_prescription (accordée via un Group dans
         l'admin) — dans ce cas il peut créer une prescription pour
-        lui-même (ex. suivi d'un médicament sans prescripteur).
+        lui-même, à condition de désigner l'un de ses médecins suiveurs
+        actifs (medecin_prescripteur n'est pas nullable en base).
+        """
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(self.medicament.id),
+                "medecin_prescripteur": str(self.medecin_suiveur.id),
+                "type_prise": Prescription.TypePrise.RESERVE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(str(response.data["medecin_prescripteur"]), str(self.medecin_suiveur.id))
+
+    def test_patient_avec_permission_django_sans_medecin_prescripteur_recoit_une_erreur_propre(self):
+        """
+        Le cas qui provoquait le crash 500 observé en production :
+        medecin_prescripteur n'est pas nullable en base, donc l'absence de
+        ce champ doit renvoyer un 400 exploitable, jamais une
+        IntegrityError brute.
         """
         self.user_patient.user_permissions.add(
             Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
@@ -170,8 +197,8 @@ class PrescriptionAPITest(APITestCase):
                 "date_debut": "2026-01-01",
             },
         )
-        self.assertEqual(response.status_code, 201)
-        self.assertIsNone(response.data["medecin_prescripteur"])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("medecin_prescripteur", response.data)
 
     def test_patient_avec_permission_django_ne_peut_pas_prescrire_pour_un_autre_patient(self):
         autre_user_patient = creer_utilisateur_avec_role("patapi2@example.com", ROLE_PATIENT)
@@ -194,6 +221,7 @@ class PrescriptionAPITest(APITestCase):
             {
                 "patient": str(self.patient.id),
                 "medicament": str(self.medicament.id),
+                "medecin_prescripteur": str(self.medecin_suiveur.id),
                 "type_prise": Prescription.TypePrise.RESERVE,
                 "dose_quantite": "1.00",
                 "dose_unite": "comprimé",
@@ -202,7 +230,7 @@ class PrescriptionAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, 403)
 
-    def test_patient_avec_permission_django_ne_peut_pas_s_attribuer_un_prescripteur(self):
+    def test_patient_avec_permission_django_ne_peut_pas_designer_un_medecin_qui_ne_le_suit_pas(self):
         self.user_patient.user_permissions.add(
             Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
         )
@@ -212,15 +240,15 @@ class PrescriptionAPITest(APITestCase):
             {
                 "patient": str(self.patient.id),
                 "medicament": str(self.medicament.id),
-                "medecin_prescripteur": str(self.medecin_suiveur.id),
+                "medecin_prescripteur": str(self.medecin_autre.id),
                 "type_prise": Prescription.TypePrise.RESERVE,
                 "dose_quantite": "1.00",
                 "dose_unite": "comprimé",
                 "date_debut": "2026-01-01",
             },
         )
-        self.assertEqual(response.status_code, 201)
-        self.assertIsNone(response.data["medecin_prescripteur"])
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("medecin_prescripteur", response.data)
 
     def test_patient_voit_ses_prescriptions_en_lecture_seule(self):
         prescription = Prescription.objects.create(
