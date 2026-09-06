@@ -5,7 +5,15 @@ from .models import Medicament
 
 @admin.register(Medicament)
 class MedicamentAdmin(admin.ModelAdmin):
-    list_display = ("denomination", "dosage", "forme_pharmaceutique", "code_cis", "source")
+    list_display = (
+        "denomination",
+        "dosage",
+        "forme_pharmaceutique",
+        "code_cis",
+        "source",
+        "verification_interactions_fiable",
+    )
+    list_filter = ("source", "verification_interactions_fiable")
     search_fields = ("denomination", "code_cis")
     # Lecture seule dans l'admin : le référentiel ne doit être modifié que
     # par la commande d'import BDPM, jamais saisi à la main.

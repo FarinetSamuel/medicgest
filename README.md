@@ -33,8 +33,8 @@ l'état.
   information affichée par l'application, sans confirmation d'un médecin ou
   d'un pharmacien.
 - En cas de doute sur un médicament, un dosage ou une interaction, consultez
-  toujours un professionnel de santé ou les sources officielles (BDPM, ANSM,
-  votre pharmacien).
+  toujours un professionnel de santé ou les sources officielles (BDPM,
+  Swissmedic, ANSM, votre pharmacien).
 - Voir aussi la licence [MIT](./LICENSE), qui inclut une clause de
   non-garantie standard ("AS IS").
 
@@ -136,6 +136,36 @@ en fin d'exécution.
 > n'est disponible dans les fichiers en téléchargement libre que pour le
 > sous-ensemble des médicaments d'intérêt thérapeutique majeur (MITM), non
 > encore importé.
+
+## Import du référentiel médicaments (Swissmedic, Suisse)
+
+De la même façon, le référentiel suisse est importé depuis les données Open
+Government Data officielles de Swissmedic
+(https://opendata.swiss/fr/dataset/daten-von-human-und-tierarzneimitteln),
+mises à jour le 1er jour ouvré de chaque mois — une seule archive à
+télécharger :
+
+```bash
+curl -o OGD.zip https://ogd.swissmedic.cloud/ogd-arzneimittel/Daten/OGD.zip
+python manage.py import_swissmedic --fichier-zip ./OGD.zip
+```
+
+Seuls les médicaments à usage humain actuellement autorisés sont importés
+(les entrées vétérinaires et révoquées sont ignorées). La commande est
+idempotente comme `import_bdpm`.
+
+> **Limitation assumée (sujet santé, jamais d'approximation silencieuse)** :
+> les substances actives suisses sont nommées en latin (nomenclature
+> Pharmacopée, ex. `atorvastatinum`) alors que le Thésaurus ANSM utilisé par
+> `apps.interactions` raisonne en français (`ATORVASTATINE`). Un
+> rapprochement automatique par suffixe donnerait un résultat juste pour
+> certains noms et faux pour beaucoup d'autres — inacceptable pour une
+> vérification d'interactions. Cette commande ne tente donc aucun
+> rapprochement : tout médicament importé depuis Swissmedic a
+> `verification_interactions_fiable=False`, et l'API/l'UI de vérification
+> des interactions (`/patients/<id>/verifier-interactions/`) le signale
+> explicitement plutôt que d'afficher silencieusement « aucune interaction
+> détectée ». Voir la docstring de la commande pour le détail complet.
 
 ## Fonctionnement du suivi des prises et du stock (paliers 2 et 3)
 

@@ -21,7 +21,7 @@ from apps.patients.models import Patient, PatientMedecin
 from apps.prescriptions.models import Prescription
 from apps.utilisateurs.models import ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
-from .logique import verifier_interactions
+from .logique import medicaments_non_verifiables, verifier_interactions
 from .models import InteractionMedicamenteuse, InteractionNonImportee
 from .parseur import parser_thesaurus
 
@@ -179,6 +179,68 @@ class VerifierInteractionsPatientTest(TestCase):
         self.assertEqual(resultats, [])
 
 
+class MedicamentsNonVerifiablesTest(TestCase):
+    """
+    Un médicament dont les substances n'ont pas été rapprochées de façon
+    fiable du Thésaurus (ex. import Swissmedic, voir
+    apps.medicaments.management.commands.import_swissmedic) ne doit
+    jamais se fondre silencieusement dans le résultat "aucune
+    interaction" — il doit apparaître à part.
+    """
+
+    def setUp(self):
+        self.medecin = creer_utilisateur_avec_role("medintnv@example.com", ROLE_MEDECIN)
+        user_patient = creer_utilisateur_avec_role("patintnv@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=user_patient,
+            numero_dossier="DOS-INT-NV-1",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+        )
+
+    def _prescrire(self, medicament):
+        return Prescription.objects.create(
+            patient=self.patient,
+            medicament=medicament,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+            statut=Prescription.Statut.ACTIVE,
+        )
+
+    def test_medicament_swissmedic_non_fiable_est_signale(self):
+        medicament = Medicament.objects.create(
+            code_cis="CH-1-1",
+            denomination="Med Suisse",
+            source=Medicament.Source.SWISSMEDIC,
+            verification_interactions_fiable=False,
+        )
+        self._prescrire(medicament)
+
+        self.assertEqual(medicaments_non_verifiables(self.patient), ["Med Suisse"])
+
+    def test_medicament_bdpm_fiable_n_est_pas_signale(self):
+        medicament = Medicament.objects.create(code_cis="FR1", denomination="Med France")
+        self._prescrire(medicament)
+
+        self.assertEqual(medicaments_non_verifiables(self.patient), [])
+
+    def test_prescription_arretee_non_signalee(self):
+        medicament = Medicament.objects.create(
+            code_cis="CH-2-1",
+            denomination="Med Suisse Arrete",
+            source=Medicament.Source.SWISSMEDIC,
+            verification_interactions_fiable=False,
+        )
+        prescription = self._prescrire(medicament)
+        prescription.statut = Prescription.Statut.ARRETEE
+        prescription.save()
+
+        self.assertEqual(medicaments_non_verifiables(self.patient), [])
+
+
 class VerificationInteractionsAPITest(APITestCase):
     def setUp(self):
         call_command("import_thesaurus", fichier=str(CHEMIN_EXTRAIT_REEL))
@@ -221,6 +283,7 @@ class VerificationInteractionsAPITest(APITestCase):
         self.assertEqual(len(response.data["interactions"]), 1)
         self.assertIn("15/09/2023", response.data["avertissement"])
         self.assertEqual(response.data["date_publication_source"], "2023-09-15")
+        self.assertEqual(response.data["medicaments_non_verifiables"], [])
 
     def test_medecin_non_suiveur_recoit_404(self):
         self.client.force_authenticate(self.autre_medecin)

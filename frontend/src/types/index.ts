@@ -177,6 +177,10 @@ export interface InteractionDetectee {
  */
 export interface VerificationInteractions {
   interactions: InteractionDetectee[];
+  /** Médicaments actuellement prescrits dont les substances n'ont pas pu être
+   * rapprochées du Thésaurus avec certitude (ex. import Swissmedic, noms en
+   * latin) — absence d'interaction ne veut pas dire "vérifié" pour ceux-ci. */
+  medicaments_non_verifiables: string[];
   avertissement: string;
   date_publication_source: string;
 }

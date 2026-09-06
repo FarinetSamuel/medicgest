@@ -47,6 +47,27 @@ def substances_actives_prescrites(patient: Patient) -> dict[str, list[str]]:
     return resultat
 
 
+def medicaments_non_verifiables(patient: Patient) -> list[str]:
+    """
+    Noms des médicaments actuellement prescrits à ce patient dont les
+    substances actives n'ont pas été rapprochées de façon fiable du
+    Thésaurus (Medicament.verification_interactions_fiable=False — voir
+    apps.medicaments.management.commands.import_swissmedic). Une absence
+    d'interaction détectée pour ces médicaments ne veut pas dire
+    "vérifié, rien trouvé" mais "non vérifiable" : à afficher séparément,
+    jamais fondu dans le silence du cas "aucune interaction".
+    """
+    prescriptions = Prescription.objects.filter(
+        patient=patient, statut=Prescription.Statut.ACTIVE
+    ).select_related("medicament")
+    noms = {
+        prescription.medicament.denomination
+        for prescription in prescriptions
+        if not prescription.medicament.verification_interactions_fiable
+    }
+    return sorted(noms)
+
+
 def verifier_interactions(patient: Patient) -> list[InteractionDetectee]:
     """
     Croise toutes les paires de substances actuellement prescrites à ce

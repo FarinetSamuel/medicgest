@@ -7,7 +7,7 @@ from apps.patients.models import Patient
 from apps.patients.permissions import medecin_suit_patient
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
 
-from .logique import verifier_interactions
+from .logique import medicaments_non_verifiables, verifier_interactions
 from .serializers import VerificationInteractionsSerializer
 
 
@@ -38,5 +38,10 @@ class VerificationInteractionsView(APIView):
             raise NotFound()  # ne pas révéler l'existence du patient hors périmètre
 
         interactions = verifier_interactions(patient)
-        serializer = VerificationInteractionsSerializer({"interactions": interactions})
+        serializer = VerificationInteractionsSerializer(
+            {
+                "interactions": interactions,
+                "medicaments_non_verifiables": medicaments_non_verifiables(patient),
+            }
+        )
         return Response(serializer.data)

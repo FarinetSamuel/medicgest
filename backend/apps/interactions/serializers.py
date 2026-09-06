@@ -21,6 +21,7 @@ class VerificationInteractionsSerializer(serializers.Serializer):
     """
 
     interactions = InteractionDetecteeSerializer(many=True)
+    medicaments_non_verifiables = serializers.ListField(child=serializers.CharField())
     avertissement = serializers.SerializerMethodField()
     date_publication_source = serializers.SerializerMethodField()
 

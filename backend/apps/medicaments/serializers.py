@@ -15,5 +15,6 @@ class MedicamentSerializer(serializers.ModelSerializer):
             "laboratoire",
             "code_atc",
             "source",
+            "verification_interactions_fiable",
             "date_import",
         ]

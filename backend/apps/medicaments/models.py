@@ -31,11 +31,15 @@ class Medicament(models.Model):
     """
     Référentiel des médicaments.
 
-    Règle non négociable : ces enregistrements sont importés depuis la
-    BDPM (Base de Données Publique des Médicaments, ANSM/data.gouv.fr) via
-    la commande `import_bdpm`, jamais saisis manuellement. Le champ
-    `source` sert de garde-fou traçable.
+    Règle non négociable : ces enregistrements sont importés depuis une
+    source officielle — BDPM (France, via `import_bdpm`) ou Swissmedic
+    (Suisse, via `import_swissmedic`) — jamais saisis manuellement. Le
+    champ `source` sert de garde-fou traçable.
     """
+
+    class Source(models.TextChoices):
+        BDPM = "BDPM", "BDPM (France)"
+        SWISSMEDIC = "SWISSMEDIC", "Swissmedic (Suisse)"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     code_cis = models.CharField(
@@ -65,7 +69,16 @@ class Medicament(models.Model):
         help_text="Renseigné par import_bdpm --fichier-composition. "
         "Utilisé par apps.interactions pour croiser avec le Thésaurus ANSM.",
     )
-    source = models.CharField(max_length=20, default="BDPM", editable=False)
+    source = models.CharField(max_length=20, choices=Source.choices, default=Source.BDPM, editable=False)
+    verification_interactions_fiable = models.BooleanField(
+        default=True,
+        help_text="False si les substances actives n'ont pas pu être rapprochées avec "
+        "certitude des noms utilisés par le Thésaurus des interactions (ex. import "
+        "Swissmedic : noms de substances en latin, jamais rapprochés automatiquement "
+        "des noms français de la BDPM — risque de faux rapprochement trop élevé). "
+        "apps.interactions doit avertir l'utilisateur plutôt que de laisser croire à "
+        "une vérification faite quand ce champ est False.",
+    )
     date_import = models.DateTimeField(auto_now=True)
 
     class Meta:

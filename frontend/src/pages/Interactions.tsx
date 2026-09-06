@@ -170,6 +170,22 @@ export function Interactions() {
                 </div>
               </div>
 
+              {verification.medicaments_non_verifiables.length > 0 && (
+                <div className="flex items-start gap-3 bg-[var(--color-warning-bg)] text-[var(--color-warning)] rounded-xl p-4">
+                  <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold">Vérification non disponible pour certains médicaments</p>
+                    <p className="text-sm mt-1">
+                      {verification.medicaments_non_verifiables.join(", ")} — les substances de{" "}
+                      {verification.medicaments_non_verifiables.length > 1 ? "ces médicaments" : "ce médicament"}{" "}
+                      n'ont pas pu être rapprochées du Thésaurus avec certitude (référentiel non français). L'absence
+                      d'interaction signalée ci-dessous ne les concerne pas : renseignez-vous auprès d'un pharmacien
+                      ou d'un médecin.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {interactionsTriees.length === 0 ? (
                 <div className="flex items-start gap-3 bg-[var(--color-success-bg)] text-[var(--color-success)] rounded-xl p-4">
                   <ShieldCheck size={20} className="shrink-0 mt-0.5" />
