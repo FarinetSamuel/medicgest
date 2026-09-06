@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { usePays } from "../context/PaysContext";
 
 const LIENS = [
   { to: "/", label: "Tableau de bord", icone: LayoutDashboard, fin: true },
@@ -19,6 +20,7 @@ const LIENS = [
 export function Layout() {
   const { utilisateur, deconnexion } = useAuth();
   const { theme, basculerTheme } = useTheme();
+  const { pays, setPays } = usePays();
   const navigate = useNavigate();
 
   function handleDeconnexion() {
@@ -74,7 +76,21 @@ export function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 shrink-0 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] flex items-center justify-end px-6">
+        <header className="h-16 shrink-0 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] flex items-center justify-between px-6">
+          <label className="flex items-center gap-2 text-sm">
+            <span className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+              Référentiel
+            </span>
+            <select
+              value={pays}
+              onChange={(e) => setPays(e.target.value as typeof pays)}
+              title="Le référentiel médicaments et les prescriptions affichées correspondent au pays choisi ici."
+              className="rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
+            >
+              <option value="BDPM">France (BDPM)</option>
+              <option value="SWISSMEDIC">Suisse (Swissmedic)</option>
+            </select>
+          </label>
           <div className="text-sm text-right">
             <div className="font-medium">{utilisateur?.prenom} {utilisateur?.nom}</div>
             <div className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] capitalize">

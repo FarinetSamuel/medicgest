@@ -24,3 +24,19 @@ class MedicamentViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ["denomination", "code_cis"]
+
+    def get_queryset(self):
+        """
+        ?source=BDPM|SWISSMEDIC : le frontend choisit un pays (France ou
+        Suisse) et ne doit voir que le référentiel correspondant — les
+        deux catalogues ne sont jamais mélangés dans un même formulaire
+        (noms de substances non rapprochables, voir
+        Medicament.verification_interactions_fiable). Une valeur inconnue
+        est ignorée plutôt que de lever une erreur 400 sur un simple
+        filtre de confort.
+        """
+        queryset = super().get_queryset()
+        source = self.request.query_params.get("source")
+        if source in Medicament.Source.values:
+            queryset = queryset.filter(source=source)
+        return queryset

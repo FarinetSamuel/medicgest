@@ -269,6 +269,28 @@ class PrescriptionAPITest(APITestCase):
         )
         self.assertEqual(response_patch.status_code, 403)
 
+    def test_medicament_source_reflete_le_pays_du_referentiel(self):
+        """
+        Le frontend filtre l'affichage des prescriptions par pays (BDPM
+        France / Swissmedic Suisse) à partir de ce champ — sans lui, il
+        faudrait résoudre `medicament` à part pour connaître la source.
+        """
+        medicament_suisse = Medicament.objects.create(
+            code_cis="CH-API-1", denomination="DAFALGAN", source=Medicament.Source.SWISSMEDIC
+        )
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=medicament_suisse,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.medecin_suiveur)
+        response = self.client.get(f"/api/v1/prescriptions/{prescription.id}/")
+        self.assertEqual(response.data["medicament_source"], "SWISSMEDIC")
+
 
 class PriseAPITest(APITestCase):
     def setUp(self):

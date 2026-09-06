@@ -12,6 +12,7 @@ class HoraireProgrammeSerializer(serializers.ModelSerializer):
 
 class PrescriptionSerializer(serializers.ModelSerializer):
     medicament_nom = serializers.CharField(source="medicament.denomination", read_only=True)
+    medicament_source = serializers.CharField(source="medicament.source", read_only=True)
     horaires = HoraireProgrammeSerializer(many=True, read_only=True)
 
     class Meta:
@@ -21,6 +22,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "patient",
             "medicament",
             "medicament_nom",
+            "medicament_source",
             "medecin_prescripteur",
             "type_prise",
             "dose_quantite",

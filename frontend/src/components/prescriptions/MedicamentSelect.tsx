@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { api } from "../../lib/api";
 import { champClasse } from "../../lib/ui";
+import { usePays } from "../../context/PaysContext";
 import type { Medicament, PageResultat } from "../../types";
 
 /**
@@ -9,6 +10,12 @@ import type { Medicament, PageResultat } from "../../types";
  * 15 857 médicaments réels importés depuis la BDPM. Ne renvoie rien tant
  * que la requête ne fait pas au moins 3 caractères, pour éviter de
  * recharger la liste complète à chaque frappe.
+ *
+ * Filtrée par le pays choisi dans l'en-tête (?source=) : les référentiels
+ * BDPM (France) et Swissmedic (Suisse) ne sont jamais mélangés dans un
+ * même choix, pour éviter toute confusion entre deux catalogues dont les
+ * noms de substances actives ne se recoupent pas (voir
+ * Medicament.verification_interactions_fiable).
  */
 export function MedicamentSelect({
   valeur,
@@ -17,6 +24,7 @@ export function MedicamentSelect({
   valeur: Medicament | null;
   onChoisir: (medicament: Medicament) => void;
 }) {
+  const { pays } = usePays();
   const [requete, setRequete] = useState("");
   const [resultats, setResultats] = useState<Medicament[]>([]);
   const [ouvert, setOuvert] = useState(false);
@@ -30,7 +38,7 @@ export function MedicamentSelect({
       setRecherche(true);
       try {
         const { data } = await api.get<PageResultat<Medicament>>("/medicaments/", {
-          params: { search: requete.trim() },
+          params: { search: requete.trim(), source: pays },
         });
         setResultats(data.results);
       } finally {
@@ -40,7 +48,7 @@ export function MedicamentSelect({
     return () => {
       if (delai.current) clearTimeout(delai.current);
     };
-  }, [requete]);
+  }, [requete, pays]);
 
   return (
     <div className="relative">

@@ -98,6 +98,9 @@ export interface Prescription {
   patient: string;
   medicament: string;
   medicament_nom: string;
+  /** Medicament.source du médicament prescrit ("BDPM" ou "SWISSMEDIC") —
+   * sert à filtrer l'affichage par pays choisi dans l'en-tête. */
+  medicament_source: string;
   medecin_prescripteur: string;
   type_prise: "reguliere" | "reserve";
   dose_quantite: string;

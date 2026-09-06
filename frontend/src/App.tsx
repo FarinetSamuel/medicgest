@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { PaysProvider } from "./context/PaysContext";
 import { RouteProtegee } from "./components/RouteProtegee";
 import { Layout } from "./components/Layout";
 import { Connexion } from "./pages/Connexion";
@@ -17,27 +18,29 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <BrowserRouter>
-          <Toaster position="top-right" richColors closeButton />
-          <Routes>
-            <Route path="/connexion" element={<Connexion />} />
-            <Route
-              element={
-                <RouteProtegee>
-                  <Layout />
-                </RouteProtegee>
-              }
-            >
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/patients" element={<Patients />} />
-              <Route path="/prescriptions" element={<Prescriptions />} />
-              <Route path="/stock" element={<Stock />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/interactions" element={<Interactions />} />
-              <Route path="/comptes" element={<Comptes />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
+        <PaysProvider>
+          <BrowserRouter>
+            <Toaster position="top-right" richColors closeButton />
+            <Routes>
+              <Route path="/connexion" element={<Connexion />} />
+              <Route
+                element={
+                  <RouteProtegee>
+                    <Layout />
+                  </RouteProtegee>
+                }
+              >
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/patients" element={<Patients />} />
+                <Route path="/prescriptions" element={<Prescriptions />} />
+                <Route path="/stock" element={<Stock />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/interactions" element={<Interactions />} />
+                <Route path="/comptes" element={<Comptes />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </PaysProvider>
       </AuthProvider>
     </ThemeProvider>
   );
