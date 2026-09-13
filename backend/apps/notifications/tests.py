@@ -83,6 +83,37 @@ class RappelsPrisesTest(TestCase):
         deuxieme_appel = generer_rappels_prises_a_venir(fenetre_minutes=15)
         self.assertEqual(len(deuxieme_appel), 0)
 
+    def test_plusieurs_prises_regroupees_dans_un_seul_email(self):
+        medicament2 = Medicament.objects.create(code_cis="NOTIF1B", denomination="NOTIFOL2")
+        prescription2 = Prescription.objects.create(
+            patient=self.patient,
+            medicament=medicament2,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=2,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        Prise.objects.create(
+            prescription=self.prescription,
+            date_heure_prevue=timezone.now() + datetime.timedelta(minutes=5),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+        Prise.objects.create(
+            prescription=prescription2,
+            date_heure_prevue=timezone.now() + datetime.timedelta(minutes=10),
+            quantite_prevue=2,
+            statut=Prise.Statut.ATTENDUE,
+        )
+        notifications = generer_rappels_prises_a_venir(fenetre_minutes=15)
+        # 2 rappels in_app (un par prise) + 1 seul e-mail regroupant les deux
+        self.assertEqual(len(notifications), 3)
+        emails = [n for n in notifications if n.canal == Notification.Canal.EMAIL]
+        self.assertEqual(len(emails), 1)
+        self.assertIn("NOTIFOL", emails[0].message)
+        self.assertIn("NOTIFOL2", emails[0].message)
+
     def test_pas_de_rappel_pour_une_prise_deja_prise(self):
         Prise.objects.create(
             prescription=self.prescription,
@@ -131,6 +162,24 @@ class AlertesStockNotificationTest(TestCase):
         generer_alertes_stock(delai_relance_heures=24)
         deuxieme_appel = generer_alertes_stock(delai_relance_heures=24)
         self.assertEqual(len(deuxieme_appel), 0)
+
+    def test_plusieurs_boites_regroupees_dans_un_seul_email(self):
+        medicament2 = Medicament.objects.create(code_cis="NOTIF2B", denomination="NOTIFOL2B")
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=2, seuil_alerte_quantite=5,
+        )
+        Boite.objects.create(
+            patient=self.patient, medicament=medicament2,
+            quantite_initiale=10, quantite_restante=1, seuil_alerte_quantite=5,
+        )
+        notifications = generer_alertes_stock()
+        # 2 alertes in_app (une par boîte) + 1 seul e-mail regroupant les deux
+        self.assertEqual(len(notifications), 3)
+        emails = [n for n in notifications if n.canal == Notification.Canal.EMAIL]
+        self.assertEqual(len(emails), 1)
+        self.assertIn("NOTIFOL2", emails[0].message)
+        self.assertIn("NOTIFOL2B", emails[0].message)
 
     def test_preference_medecin_envoie_uniquement_au_medecin_suiveur(self):
         PatientMedecin.objects.create(patient=self.patient, medecin=self.medecin, actif=True)

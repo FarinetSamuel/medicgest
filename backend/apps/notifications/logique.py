@@ -37,10 +37,15 @@ def _destinataires_alerte_stock(patient) -> list:
 
 def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[Notification]:
     """
-    Crée un rappel (in_app + email) pour chaque Prise ATTENDUE dont
-    l'heure prévue tombe dans les `fenetre_minutes` prochaines minutes et
-    qui n'a pas déjà de rappel associé (évite les doublons si la commande
-    est relancée plusieurs fois avant l'heure prévue).
+    Crée un rappel in_app pour chaque Prise ATTENDUE dont l'heure prévue
+    tombe dans les `fenetre_minutes` prochaines minutes et qui n'a pas déjà
+    de rappel associé (évite les doublons si la commande est relancée
+    plusieurs fois avant l'heure prévue).
+
+    Le canal in_app reste un rappel par prise (chacun peut être marqué lu
+    séparément), mais l'e-mail est regroupé : un seul e-mail par
+    destinataire, listant toutes ses prises à venir détectées lors de cet
+    appel, plutôt qu'un e-mail par prise.
     """
     fenetre_minutes = fenetre_minutes or getattr(settings, "RAPPEL_PRISE_FENETRE_MINUTES", 15)
     maintenant = timezone.now()
@@ -57,33 +62,50 @@ def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[N
     )
 
     creees = []
+    lignes_par_destinataire: dict = {}
     for prise in prises_a_notifier:
         patient = prise.prescription.patient
         medicament = prise.prescription.medicament
+        heure = timezone.localtime(prise.date_heure_prevue).strftime("%H:%M")
+        quantite = prise.quantite_prevue or prise.prescription.dose_quantite
+        unite = prise.prescription.dose_unite
         titre = f"Rappel de prise : {medicament.denomination}"
         message = (
             f"N'oubliez pas votre prise de {medicament.denomination} "
-            f"({prise.quantite_prevue or prise.prescription.dose_quantite} "
-            f"{prise.prescription.dose_unite}) prévue à "
-            f"{timezone.localtime(prise.date_heure_prevue).strftime('%H:%M')}."
+            f"({quantite} {unite}) prévue à {heure}."
         )
-        for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
-            creees.append(
-                Notification.objects.create(
-                    destinataire=patient.utilisateur,
-                    canal=canal,
-                    categorie=Notification.Categorie.RAPPEL_PRISE,
-                    titre=titre,
-                    message=message,
-                    prise=prise,
-                )
+        creees.append(
+            Notification.objects.create(
+                destinataire=patient.utilisateur,
+                canal=Notification.Canal.IN_APP,
+                categorie=Notification.Categorie.RAPPEL_PRISE,
+                titre=titre,
+                message=message,
+                prise=prise,
             )
+        )
+        lignes_par_destinataire.setdefault(patient.utilisateur, []).append(
+            f"- {medicament.denomination} ({quantite} {unite}) à {heure}"
+        )
+
+    for destinataire, lignes in lignes_par_destinataire.items():
+        titre = "Rappel de prise" if len(lignes) == 1 else f"Rappel de {len(lignes)} prises"
+        message = "Prises à venir :\n\n" + "\n".join(lignes)
+        creees.append(
+            Notification.objects.create(
+                destinataire=destinataire,
+                canal=Notification.Canal.EMAIL,
+                categorie=Notification.Categorie.RAPPEL_PRISE,
+                titre=titre,
+                message=message,
+            )
+        )
     return creees
 
 
 def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
     """
-    Crée une alerte (in_app + email) pour chaque Boite active en_alerte, à
+    Crée une alerte in_app pour chaque Boite active en_alerte, à
     destination du/des destinataire(s) choisi(s) pour ce patient (voir
     _destinataires_alerte_stock), sauf si CE destinataire a déjà été
     notifié pour cette boîte il y a moins de `delai_relance_heures` —
@@ -92,6 +114,10 @@ def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
     destinataire (et non plus globalement par boîte) : si la préférence
     passe de "patient" à "les_deux", le médecin nouvellement ajouté doit
     quand même recevoir une première alerte immédiatement.
+
+    Comme pour les rappels de prise, l'e-mail est regroupé : un seul par
+    destinataire couvrant toutes ses boîtes en alerte détectées lors de
+    cet appel, plutôt qu'un e-mail par boîte.
     """
     limite_relance = timezone.now() - datetime.timedelta(hours=delai_relance_heures)
 
@@ -100,6 +126,7 @@ def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
     )
 
     creees = []
+    lignes_par_destinataire: dict = {}
     for boite in boites_actives:
         if not boite.en_alerte:
             continue
@@ -119,17 +146,32 @@ def generer_alertes_stock(delai_relance_heures: int = 24) -> list[Notification]:
             if derniere_alerte and derniere_alerte.date_creation > limite_relance:
                 continue
 
-            for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
-                creees.append(
-                    Notification.objects.create(
-                        destinataire=destinataire,
-                        canal=canal,
-                        categorie=Notification.Categorie.ALERTE_STOCK,
-                        titre=titre,
-                        message=message,
-                        boite=boite,
-                    )
+            creees.append(
+                Notification.objects.create(
+                    destinataire=destinataire,
+                    canal=Notification.Canal.IN_APP,
+                    categorie=Notification.Categorie.ALERTE_STOCK,
+                    titre=titre,
+                    message=message,
+                    boite=boite,
                 )
+            )
+            lignes_par_destinataire.setdefault(destinataire, []).append(
+                f"- {boite.medicament.denomination} : {', '.join(details)}"
+            )
+
+    for destinataire, lignes in lignes_par_destinataire.items():
+        titre = "Stock bas" if len(lignes) == 1 else f"Stock bas ({len(lignes)} médicaments)"
+        message = "Les stocks suivants sont bas :\n\n" + "\n".join(lignes)
+        creees.append(
+            Notification.objects.create(
+                destinataire=destinataire,
+                canal=Notification.Canal.EMAIL,
+                categorie=Notification.Categorie.ALERTE_STOCK,
+                titre=titre,
+                message=message,
+            )
+        )
     return creees
 
 
@@ -140,6 +182,9 @@ def generer_alertes_rupture_stock(delai_relance_heures: int = 24) -> list[Notifi
     médicament — cas non couvert par generer_alertes_stock, qui ne
     parcourt que les Boite déjà existantes et ne peut donc jamais
     détecter une absence totale de boîte.
+
+    Comme pour generer_alertes_stock, l'e-mail est regroupé par
+    destinataire plutôt qu'envoyé une fois par prescription en rupture.
     """
     limite_relance = timezone.now() - datetime.timedelta(hours=delai_relance_heures)
 
@@ -148,6 +193,7 @@ def generer_alertes_rupture_stock(delai_relance_heures: int = 24) -> list[Notifi
     ).select_related("patient__utilisateur", "medicament")
 
     creees = []
+    lignes_par_destinataire: dict = {}
     for prescription in prescriptions_actives:
         a_du_stock = Boite.objects.filter(
             patient=prescription.patient,
@@ -170,15 +216,32 @@ def generer_alertes_rupture_stock(delai_relance_heures: int = 24) -> list[Notifi
             if derniere_alerte and derniere_alerte.date_creation > limite_relance:
                 continue
 
-            for canal in (Notification.Canal.IN_APP, Notification.Canal.EMAIL):
-                creees.append(
-                    Notification.objects.create(
-                        destinataire=destinataire,
-                        canal=canal,
-                        categorie=Notification.Categorie.ALERTE_STOCK,
-                        titre=titre,
-                        message=message,
-                        prescription=prescription,
-                    )
+            creees.append(
+                Notification.objects.create(
+                    destinataire=destinataire,
+                    canal=Notification.Canal.IN_APP,
+                    categorie=Notification.Categorie.ALERTE_STOCK,
+                    titre=titre,
+                    message=message,
+                    prescription=prescription,
                 )
+            )
+            lignes_par_destinataire.setdefault(destinataire, []).append(
+                f"- {prescription.medicament.denomination} : aucune boîte enregistrée"
+            )
+
+    for destinataire, lignes in lignes_par_destinataire.items():
+        titre = "Rupture de stock" if len(lignes) == 1 else f"Rupture de stock ({len(lignes)} médicaments)"
+        message = "Aucune boîte n'est enregistrée pour les prescriptions actives suivantes :\n\n" + "\n".join(
+            lignes
+        )
+        creees.append(
+            Notification.objects.create(
+                destinataire=destinataire,
+                canal=Notification.Canal.EMAIL,
+                categorie=Notification.Categorie.ALERTE_STOCK,
+                titre=titre,
+                message=message,
+            )
+        )
     return creees
