@@ -124,11 +124,11 @@ export function PatientFormModal({
             <label className="block text-sm font-medium mb-1.5">Compte utilisateur</label>
             {estAdmin ? (
               chargementCandidats ? (
-                <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                <p className="text-sm text-[var(--muted)]">
                   Chargement des comptes disponibles...
                 </p>
               ) : candidats && candidats.length === 0 ? (
-                <p className="text-sm text-[var(--color-warning)]">
+                <p className="text-sm text-[var(--statut-attention)]">
                   Aucun compte "patient" disponible sans fiche existante. Créez d'abord le compte utilisateur
                   dans la gestion des comptes.
                 </p>
@@ -145,18 +145,18 @@ export function PatientFormModal({
             ) : (
               <>
                 <input required placeholder="UUID du compte utilisateur" {...champ("utilisateur")} className={champClasse} />
-                <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+                <p className="text-xs text-[var(--muted)] mt-1">
                   Le compte doit déjà exister (créé par un administrateur). En tant que médecin, vous ne
                   pouvez pas parcourir la liste des comptes ici — demandez l'identifiant à un administrateur.
                 </p>
               </>
             )}
-            {erreurs.utilisateur && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.utilisateur}</p>}
+            {erreurs.utilisateur && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.utilisateur}</p>}
           </div>
         ) : (
           <div>
             <label className="block text-sm font-medium mb-1.5">Compte utilisateur</label>
-            <p className={`${champClasse} text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]`}>
+            <p className={`${champClasse} text-[var(--muted)]`}>
               {patient!.utilisateur_email}
             </p>
           </div>
@@ -165,7 +165,7 @@ export function PatientFormModal({
         <div>
           <label className="block text-sm font-medium mb-1.5">Numéro de dossier</label>
           <input required {...champ("numero_dossier")} className={champClasse} />
-          {erreurs.numero_dossier && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.numero_dossier}</p>}
+          {erreurs.numero_dossier && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.numero_dossier}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -183,8 +183,8 @@ export function PatientFormModal({
           </div>
         </div>
 
-        <fieldset className="border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-3 space-y-3">
-          <legend className="text-xs font-medium px-1 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <fieldset className="border border-[var(--hairline)] rounded-[var(--radius-control)] p-3 space-y-3">
+          <legend className="text-xs font-medium px-1 text-[var(--muted)]">
             Contact d'urgence (facultatif)
           </legend>
           <input placeholder="Nom" {...champ("contact_urgence_nom")} className={champClasse} />
@@ -198,14 +198,14 @@ export function PatientFormModal({
           <button
             type="button"
             onClick={onFermer}
-            className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={enCours}
-            className="text-sm px-4 py-2 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             {enCours ? "Enregistrement..." : "Enregistrer"}
           </button>

@@ -90,13 +90,13 @@ export function HorairesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Horaires
         </h4>
         {peutModifier && !ouvert && (
           <button
             onClick={() => setOuvert(true)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
           >
             <Plus size={14} /> Ajouter
           </button>
@@ -130,14 +130,14 @@ export function HorairesSection({
           <button
             type="submit"
             disabled={enCours}
-            className="text-xs px-3 py-1.5 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="text-xs px-3 py-1.5 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             Ajouter
           </button>
           <button
             type="button"
             onClick={() => setOuvert(false)}
-            className="text-xs px-2 py-1.5 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+            className="text-xs px-2 py-1.5 text-[var(--muted)]"
           >
             Annuler
           </button>
@@ -145,7 +145,7 @@ export function HorairesSection({
       )}
 
       {horaires.length === 0 ? (
-        <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-xs text-[var(--muted)]">
           Aucun horaire défini.
         </p>
       ) : (
@@ -155,7 +155,7 @@ export function HorairesSection({
               <form
                 key={h.id}
                 onSubmit={(e) => enregistrerEdition(e, h)}
-                className="flex items-end gap-2 border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-2"
+                className="flex items-end gap-2 border border-[var(--hairline)] rounded-[var(--radius-control)] p-2"
               >
                 <div>
                   <label className="block text-xs mb-1">Heure</label>
@@ -182,14 +182,14 @@ export function HorairesSection({
                 <button
                   type="submit"
                   disabled={enregistrementEnCours}
-                  className="text-xs px-3 py-1.5 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+                  className="text-xs px-3 py-1.5 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
                 >
                   Enregistrer
                 </button>
                 <button
                   type="button"
                   onClick={annulerEdition}
-                  className="text-xs px-2 py-1.5 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+                  className="text-xs px-2 py-1.5 text-[var(--muted)]"
                 >
                   Annuler
                 </button>
@@ -199,8 +199,8 @@ export function HorairesSection({
                 key={h.id}
                 className={`flex items-center gap-1 text-xs pl-2.5 pr-1 py-1 rounded-full border ${
                   h.actif
-                    ? "border-[var(--color-brand-500)] text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)]"
-                    : "border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+                    ? "border-[var(--cta)] text-[var(--accent)]"
+                    : "border-[var(--hairline)] text-[var(--muted)]"
                 }`}
               >
                 <button

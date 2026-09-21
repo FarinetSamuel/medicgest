@@ -101,13 +101,13 @@ export function PrisesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
           Prises
         </h4>
         {peutModifier && typePrise === "reserve" && !ouvert && (
           <button
             onClick={() => setOuvert(true)}
-            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+            className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
           >
             <Plus size={14} /> Enregistrer une prise
           </button>
@@ -139,14 +139,14 @@ export function PrisesSection({
           <button
             type="submit"
             disabled={enCours}
-            className="text-xs px-3 py-1.5 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="text-xs px-3 py-1.5 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             Enregistrer
           </button>
           <button
             type="button"
             onClick={() => setOuvert(false)}
-            className="text-xs px-2 py-1.5 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+            className="text-xs px-2 py-1.5 text-[var(--muted)]"
           >
             Annuler
           </button>
@@ -154,7 +154,7 @@ export function PrisesSection({
       )}
 
       {prises.length === 0 ? (
-        <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-xs text-[var(--muted)]">
           Aucune prise enregistrée.
         </p>
       ) : (
@@ -164,16 +164,16 @@ export function PrisesSection({
             return (
               <li
                 key={p.id}
-                className="flex items-center justify-between gap-2 text-xs bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-lg px-2.5 py-1.5"
+                className="flex items-center justify-between gap-2 text-xs bg-[var(--bg)] rounded-[var(--radius-control)] px-2.5 py-1.5"
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <StatusBadge ton={STATUTS[p.statut].ton}>{STATUTS[p.statut].label}</StatusBadge>
-                  <span className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] truncate">
+                  <span className="text-[var(--muted)] truncate">
                     {moment ? new Date(moment).toLocaleString("fr-FR") : "—"}
                     {p.quantite_prise ? ` · ${p.quantite_prise}` : ""}
                   </span>
                   {p.alerte_depassement && (
-                    <span title="Plafond journalier dépassé" className="text-[var(--color-danger)] shrink-0">
+                    <span title="Plafond journalier dépassé" className="text-[var(--statut-rupture)] shrink-0">
                       <AlertTriangle size={13} />
                     </span>
                   )}
@@ -184,19 +184,19 @@ export function PrisesSection({
                       <>
                         <button
                           onClick={() => changerStatut(p, "prise")}
-                          className="text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+                          className="text-[var(--accent)] hover:underline"
                         >
                           Marquer prise
                         </button>
                         <button
                           onClick={() => changerStatut(p, "oubliee")}
-                          className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:underline"
+                          className="text-[var(--muted)] hover:underline"
                         >
                           Oubliée
                         </button>
                       </>
                     )}
-                    <button onClick={() => supprimer(p)} className="text-[var(--color-danger)] hover:underline">
+                    <button onClick={() => supprimer(p)} className="text-[var(--statut-rupture)] hover:underline">
                       Suppr.
                     </button>
                   </div>

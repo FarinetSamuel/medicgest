@@ -76,7 +76,7 @@ export function SuivisMedecin({ patientId }: { patientId: string }) {
         {!ouvert && (
           <button
             onClick={ouvrirFormulaire}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:underline"
           >
             <Plus size={16} /> Assigner
           </button>
@@ -101,7 +101,7 @@ export function SuivisMedecin({ patientId }: { patientId: string }) {
           <button
             type="submit"
             disabled={enCours}
-            className="shrink-0 text-sm px-3 py-2 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="shrink-0 text-sm px-3 py-2 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             Valider
           </button>
@@ -109,7 +109,7 @@ export function SuivisMedecin({ patientId }: { patientId: string }) {
             type="button"
             onClick={() => setOuvert(false)}
             aria-label="Annuler"
-            className="shrink-0 text-sm px-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+            className="shrink-0 text-sm px-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
           >
             <X size={18} />
           </button>
@@ -117,7 +117,7 @@ export function SuivisMedecin({ patientId }: { patientId: string }) {
       )}
 
       {suivis.length === 0 ? (
-        <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-sm text-[var(--muted)]">
           Aucun médecin suiveur.
         </p>
       ) : (
@@ -125,18 +125,18 @@ export function SuivisMedecin({ patientId }: { patientId: string }) {
           {suivis.map((s) => (
             <li
               key={s.id}
-              className="flex items-center justify-between text-sm bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg px-3 py-2"
+              className="flex items-center justify-between text-sm bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-control)] px-3 py-2"
             >
               <span>
                 {s.medecin_email}
                 {!s.actif && (
-                  <span className="ml-2 text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                  <span className="ml-2 text-xs text-[var(--muted)]">
                     (terminé{s.date_fin ? ` le ${new Date(s.date_fin).toLocaleDateString("fr-FR")}` : ""})
                   </span>
                 )}
               </span>
               {s.actif && (
-                <button onClick={() => revoquer(s)} className="text-xs text-[var(--color-danger)] hover:underline">
+                <button onClick={() => revoquer(s)} className="text-xs text-[var(--statut-rupture)] hover:underline">
                   Révoquer
                 </button>
               )}

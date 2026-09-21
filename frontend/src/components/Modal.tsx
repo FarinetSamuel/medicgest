@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { titreCarteClasse } from "../lib/ui";
 
 export function Modal({
   titre,
@@ -27,16 +28,16 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-titre"
-        className={`relative w-full ${largeur} bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl shadow-xl max-h-[90vh] overflow-y-auto`}
+        className={`relative w-full ${largeur} bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] max-h-[90vh] overflow-y-auto`}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)]">
-          <h2 id="modal-titre" className="font-[var(--font-display)] text-lg font-semibold">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--hairline)]">
+          <h2 id="modal-titre" className={titreCarteClasse}>
             {titre}
           </h2>
           <button
             onClick={onFermer}
             aria-label="Fermer"
-            className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:text-current transition-colors"
+            className="text-[var(--muted)] hover:text-current transition-colors"
           >
             <X size={20} />
           </button>

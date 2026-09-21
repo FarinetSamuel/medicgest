@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search, ShieldOff } from "lucide-react";
 import { api, recupererToutesPages } from "../lib/api";
+import { titrePageClasse } from "../lib/ui";
 import { useAuth } from "../context/AuthContext";
 import { StatusBadge } from "../components/StatusBadge";
 import { CompteFormModal } from "../components/comptes/CompteFormModal";
@@ -66,7 +67,7 @@ export function Comptes() {
 
   if (utilisateur?.role !== "admin") {
     return (
-      <div className="flex items-center gap-3 bg-[var(--color-danger-bg)] text-[var(--color-danger)] rounded-xl p-4">
+      <div className="flex items-center gap-3 bg-[color-mix(in_srgb,var(--statut-rupture)_14%,var(--surface))] text-[var(--statut-rupture)] rounded-[var(--radius-card)] p-4">
         <ShieldOff size={20} />
         <p className="text-sm">Cette page est réservée aux administrateurs.</p>
       </div>
@@ -91,14 +92,14 @@ export function Comptes() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-[var(--font-display)] text-2xl font-semibold">Comptes utilisateurs</h1>
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+          <h1 className={titrePageClasse}>Comptes utilisateurs</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">
             Création et gestion des comptes admin, médecin et patient.
           </p>
         </div>
         <button
           onClick={() => setModalCreation(true)}
-          className="inline-flex items-center gap-2 text-sm font-medium rounded-lg bg-[var(--color-brand-500)] text-white px-4 py-2.5 hover:bg-[var(--color-brand-600)] transition-colors shrink-0"
+          className="inline-flex items-center gap-2 text-sm font-medium rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] px-4 py-2.5 hover:brightness-95 transition-colors shrink-0"
         >
           <Plus size={16} /> Nouveau compte
         </button>
@@ -108,13 +109,13 @@ export function Comptes() {
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
           />
           <input
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             placeholder="Rechercher par nom ou email..."
-            className="w-full rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
+            className="w-full rounded-[var(--radius-control)] border border-[var(--hairline)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           />
         </div>
         <div className="flex gap-2">
@@ -124,8 +125,8 @@ export function Comptes() {
               onClick={() => setFiltreRole(f.valeur)}
               className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
                 filtreRole === f.valeur
-                  ? "bg-[var(--color-brand-500)] text-white border-[var(--color-brand-500)]"
-                  : "border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+                  ? "bg-[var(--cta)] text-[var(--cta-ink)] border-[var(--cta)]"
+                  : "border-[var(--hairline)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
               }`}
             >
               {f.label}
@@ -134,13 +135,13 @@ export function Comptes() {
         </div>
       </div>
 
-      <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl divide-y divide-[var(--color-border-light)] dark:divide-[var(--color-border-dark)] overflow-hidden">
+      <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] divide-y divide-[var(--hairline)] overflow-hidden">
         {chargement ? (
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+          <p className="text-sm text-[var(--muted)] p-4">
             Chargement...
           </p>
         ) : comptesFiltres.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+          <p className="text-sm text-[var(--muted)] p-4">
             Aucun compte {recherche || filtreRole !== "tous" ? "ne correspond aux critères" : "pour le moment"}.
           </p>
         ) : (
@@ -150,7 +151,7 @@ export function Comptes() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`font-medium truncate ${
-                      !c.actif ? "text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] line-through" : ""
+                      !c.actif ? "text-[var(--muted)] line-through" : ""
                     }`}
                   >
                     {c.first_name} {c.last_name}
@@ -160,14 +161,14 @@ export function Comptes() {
                   </StatusBadge>
                   {!c.actif && <StatusBadge ton="danger">Désactivé</StatusBadge>}
                 </div>
-                <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] truncate">
+                <p className="text-sm text-[var(--muted)] truncate">
                   {c.email}
                   {c.role === "medecin" && c.specialite && ` · ${libelleSpecialite(c.specialite, c.specialite_autre)}`}
                 </p>
               </button>
               <button
                 onClick={() => basculerActif(c)}
-                className="text-xs font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline shrink-0"
+                className="text-xs font-medium text-[var(--accent)] hover:underline shrink-0"
               >
                 {c.actif ? "Désactiver" : "Réactiver"}
               </button>

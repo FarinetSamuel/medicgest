@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CheckCheck } from "lucide-react";
 import { api, recupererToutesPages } from "../lib/api";
+import { titrePageClasse } from "../lib/ui";
 import { NotificationRow } from "../components/notifications/NotificationRow";
 import type { Notification } from "../types";
 
@@ -79,15 +80,15 @@ export function Notifications() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-[var(--font-display)] text-2xl font-semibold">Notifications</h1>
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+          <h1 className={titrePageClasse}>Notifications</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">
             Rappels de prise et alertes de stock.
           </p>
         </div>
         {nombreNonLues > 0 && (
           <button
             onClick={toutMarquerLu}
-            className="inline-flex items-center gap-2 text-sm font-medium rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
+            className="inline-flex items-center gap-2 text-sm font-medium rounded-[var(--radius-control)] border border-[var(--hairline)] px-3 py-2 hover:bg-black/5 dark:hover:bg-white/5 transition-colors shrink-0"
           >
             <CheckCheck size={16} /> Tout marquer comme lu
           </button>
@@ -101,8 +102,8 @@ export function Notifications() {
             onClick={() => setFiltre(f.valeur)}
             className={`text-xs font-medium px-3 py-1.5 rounded-full border transition-colors ${
               filtre === f.valeur
-                ? "bg-[var(--color-brand-500)] text-white border-[var(--color-brand-500)]"
-                : "border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+                ? "bg-[var(--cta)] text-[var(--cta-ink)] border-[var(--cta)]"
+                : "border-[var(--hairline)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
             }`}
           >
             {f.label}
@@ -110,13 +111,13 @@ export function Notifications() {
         ))}
       </div>
 
-      <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl overflow-hidden">
+      <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] overflow-hidden">
         {chargement ? (
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+          <p className="text-sm text-[var(--muted)] p-4">
             Chargement...
           </p>
         ) : notificationsFiltrees.length === 0 ? (
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+          <p className="text-sm text-[var(--muted)] p-4">
             Aucune notification {filtre !== "toutes" ? "dans ce filtre" : "pour le moment"}.
           </p>
         ) : (

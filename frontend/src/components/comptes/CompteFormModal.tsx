@@ -125,11 +125,11 @@ export function CompteFormModal({
           {modeCreation ? (
             <input required type="email" {...champTexte("email")} className={champClasse} />
           ) : (
-            <p className={`${champClasse} text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]`}>
+            <p className={`${champClasse} text-[var(--muted)]`}>
               {compte!.email}
             </p>
           )}
-          {erreurs.email && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.email}</p>}
+          {erreurs.email && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.email}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -147,7 +147,7 @@ export function CompteFormModal({
           <div>
             <label className="block text-sm font-medium mb-1.5">Mot de passe</label>
             <input required type="password" minLength={8} {...champTexte("password")} className={champClasse} />
-            {erreurs.password && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.password}</p>}
+            {erreurs.password && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.password}</p>}
           </div>
         ) : (
           <div>
@@ -159,7 +159,7 @@ export function CompteFormModal({
               {...champTexte("password")}
               className={champClasse}
             />
-            {erreurs.password && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.password}</p>}
+            {erreurs.password && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.password}</p>}
           </div>
         )}
 
@@ -177,7 +177,7 @@ export function CompteFormModal({
               <option value="patient">Patient</option>
             </select>
           ) : (
-            <p className={`${champClasse} text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] capitalize`}>
+            <p className={`${champClasse} text-[var(--muted)] capitalize`}>
               {compte!.role}
               <span className="text-xs block mt-0.5 normal-case">
                 Le rôle ne peut pas être modifié après la création.
@@ -208,7 +208,7 @@ export function CompteFormModal({
                 <label className="block text-sm font-medium mb-1.5">Préciser la spécialité</label>
                 <input required {...champTexte("specialite_autre")} className={champClasse} />
                 {erreurs.specialite_autre && (
-                  <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.specialite_autre}</p>
+                  <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.specialite_autre}</p>
                 )}
               </div>
             )}
@@ -228,14 +228,14 @@ export function CompteFormModal({
           <button
             type="button"
             onClick={onFermer}
-            className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={enCours}
-            className="text-sm px-4 py-2 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             {enCours ? "Enregistrement..." : "Enregistrer"}
           </button>

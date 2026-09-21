@@ -43,7 +43,7 @@ export function PreferenceAlerteStock({
   return (
     <div>
       <h3 className="text-sm font-semibold mb-2">Alertes de stock bas / rupture</h3>
-      <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mb-2">
+      <p className="text-xs text-[var(--muted)] mb-2">
         Qui est prévenu quand le stock d'un médicament est bas ou totalement épuisé.
       </p>
       <select

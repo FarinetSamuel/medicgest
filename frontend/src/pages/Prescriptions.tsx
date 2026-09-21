@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
 import { api, recupererToutesPages } from "../lib/api";
+import { titrePageClasse } from "../lib/ui";
 import { useAuth } from "../context/AuthContext";
 import { usePays } from "../context/PaysContext";
 import { PrescriptionFormModal } from "../components/prescriptions/PrescriptionFormModal";
@@ -131,8 +132,8 @@ export function Prescriptions() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="font-[var(--font-display)] text-2xl font-semibold">Prescriptions</h1>
-        <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+        <h1 className={titrePageClasse}>Prescriptions</h1>
+        <p className="text-sm text-[var(--muted)] mt-1">
           {role === "patient"
             ? "Vos traitements en cours et leur historique de prises."
             : "Sélectionnez un patient pour voir et gérer ses prescriptions."}
@@ -145,22 +146,22 @@ export function Prescriptions() {
             <div className="relative">
               <Search
                 size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
               />
               <input
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
                 placeholder="Rechercher un patient..."
-                className="w-full rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
+                className="w-full rounded-[var(--radius-control)] border border-[var(--hairline)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               />
             </div>
-            <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl divide-y divide-[var(--color-border-light)] dark:divide-[var(--color-border-dark)] overflow-hidden">
+            <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] divide-y divide-[var(--hairline)] overflow-hidden">
               {chargementPatients ? (
-                <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+                <p className="text-sm text-[var(--muted)] p-4">
                   Chargement...
                 </p>
               ) : patientsFiltres.length === 0 ? (
-                <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+                <p className="text-sm text-[var(--muted)] p-4">
                   Aucun patient {recherche ? "ne correspond à la recherche" : "pour le moment"}.
                 </p>
               ) : (
@@ -170,7 +171,7 @@ export function Prescriptions() {
                     onClick={() => setPatientSelectionneId(p.id)}
                     className={`w-full text-left px-4 py-3 text-sm transition-colors ${
                       p.id === patientSelectionneId
-                        ? "bg-[var(--color-brand-500)] text-white"
+                        ? "bg-[var(--cta)] text-[var(--cta-ink)]"
                         : "hover:bg-black/5 dark:hover:bg-white/5"
                     }`}
                   >
@@ -182,8 +183,8 @@ export function Prescriptions() {
                     <div
                       className={
                         p.id === patientSelectionneId
-                          ? "text-white/80 truncate"
-                          : "text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] truncate"
+                          ? "text-[var(--cta-ink)]/80 truncate"
+                          : "text-[var(--muted)] truncate"
                       }
                     >
                       {p.numero_dossier}
@@ -199,7 +200,7 @@ export function Prescriptions() {
           {(role !== "patient" || peutCreer) && (
             <div className="flex items-center justify-between">
               {role !== "patient" && (
-                <h2 className="text-sm font-semibold text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                <h2 className="text-sm font-semibold text-[var(--muted)]">
                   {patientSelectionne
                     ? `${patientSelectionne.utilisateur_prenom} ${patientSelectionne.utilisateur_nom}`.trim() ||
                       patientSelectionne.numero_dossier
@@ -209,7 +210,7 @@ export function Prescriptions() {
               {peutCreer && (
                 <button
                   onClick={() => setModalCreation(true)}
-                  className="inline-flex items-center gap-2 text-sm font-medium rounded-lg bg-[var(--color-brand-500)] text-white px-3 py-2 hover:bg-[var(--color-brand-600)] transition-colors"
+                  className="inline-flex items-center gap-2 text-sm font-medium rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] px-3 py-2 hover:brightness-95 transition-colors"
                 >
                   <Plus size={16} /> Nouvelle prescription
                 </button>
@@ -218,15 +219,15 @@ export function Prescriptions() {
           )}
 
           {!patientSelectionneId ? (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <p className="text-sm text-[var(--muted)]">
               Sélectionnez un patient dans la liste pour voir ses prescriptions.
             </p>
           ) : chargementPrescriptions ? (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <p className="text-sm text-[var(--muted)]">
               Chargement...
             </p>
           ) : prescriptions.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <p className="text-sm text-[var(--muted)]">
               Aucune prescription pour le moment.
             </p>
           ) : (

@@ -30,9 +30,9 @@ export function Layout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] text-[var(--color-text-light)] dark:text-[var(--color-text-dark)]">
-      <aside className="w-64 shrink-0 border-r border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] flex flex-col">
-        <div className="px-5 py-5 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)]">
+    <div className="flex min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <aside className="w-64 shrink-0 border-r border-[var(--hairline)] bg-[var(--surface)] flex flex-col">
+        <div className="px-5 py-5 border-b border-[var(--hairline)]">
           <Logo size={28} wordmark="compact" />
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -43,10 +43,10 @@ export function Layout() {
               to={to}
               end={fin}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                `flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium transition-colors ${
                   isActive
-                    ? "bg-[var(--color-brand-500)] text-white"
-                    : "text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+                    ? "bg-[var(--cta)] text-[var(--cta-ink)]"
+                    : "text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
                 }`
               }
             >
@@ -56,17 +56,17 @@ export function Layout() {
             )
           )}
         </nav>
-        <div className="px-3 py-4 border-t border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] space-y-1">
+        <div className="px-3 py-4 border-t border-[var(--hairline)] space-y-1">
           <button
             onClick={basculerTheme}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
           >
             {theme === "light" ? <Moon size={18} /> : <Sun size={18} />}
             {theme === "light" ? "Thème sombre" : "Thème clair"}
           </button>
           <button
             onClick={handleDeconnexion}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+            className="w-full flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2.5 text-sm font-medium text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
           >
             <LogOut size={18} />
             Déconnexion
@@ -75,16 +75,16 @@ export function Layout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 shrink-0 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] flex items-center justify-between px-6">
+        <header className="h-16 shrink-0 border-b border-[var(--hairline)] bg-[var(--surface)] flex items-center justify-between px-6">
           <label className="flex items-center gap-2 text-sm">
-            <span className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <span className="text-[var(--muted)]">
               Référentiel
             </span>
             <select
               value={pays}
               onChange={(e) => setPays(e.target.value as typeof pays)}
               title="Le référentiel médicaments et les prescriptions affichées correspondent au pays choisi ici."
-              className="rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
+              className="rounded-[var(--radius-control)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             >
               <option value="BDPM">France (BDPM)</option>
               <option value="SWISSMEDIC">Suisse (Swissmedic)</option>
@@ -92,7 +92,7 @@ export function Layout() {
           </label>
           <div className="text-sm text-right">
             <div className="font-medium">{utilisateur?.prenom} {utilisateur?.nom}</div>
-            <div className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] capitalize">
+            <div className="text-[var(--muted)] capitalize">
               {utilisateur?.role}
             </div>
           </div>

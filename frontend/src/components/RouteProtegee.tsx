@@ -6,7 +6,7 @@ export function RouteProtegee({ children }: { children: React.ReactNode }) {
 
   if (chargement) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+      <div className="min-h-screen flex items-center justify-center text-[var(--muted)]">
         Chargement...
       </div>
     );

@@ -57,7 +57,7 @@ export function NotesMedicales({
         {peutAjouter && !ouvert && (
           <button
             onClick={() => setOuvert(true)}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:underline"
           >
             <Plus size={16} /> Ajouter une note
           </button>
@@ -67,7 +67,7 @@ export function NotesMedicales({
       {ouvert && (
         <form
           onSubmit={handleSubmit}
-          className="mb-4 space-y-3 bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-3"
+          className="mb-4 space-y-3 bg-[var(--bg)] border border-[var(--hairline)] rounded-[var(--radius-control)] p-3"
         >
           <select
             value={categorie}
@@ -94,14 +94,14 @@ export function NotesMedicales({
             <button
               type="button"
               onClick={() => setOuvert(false)}
-              className="text-sm px-3 py-1.5 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+              className="text-sm px-3 py-1.5 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={enCours}
-              className="text-sm px-3 py-1.5 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+              className="text-sm px-3 py-1.5 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
             >
               {enCours ? "Ajout..." : "Ajouter"}
             </button>
@@ -110,7 +110,7 @@ export function NotesMedicales({
       )}
 
       {notes.length === 0 ? (
-        <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-sm text-[var(--muted)]">
           Aucune note enregistrée.
         </p>
       ) : (
@@ -118,11 +118,11 @@ export function NotesMedicales({
           {notes.map((note) => (
             <li
               key={note.id}
-              className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-3"
+              className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-control)] p-3"
             >
               <div className="flex items-center justify-between mb-1.5 gap-2">
                 <StatusBadge ton={CATEGORIES[note.categorie].ton}>{CATEGORIES[note.categorie].label}</StatusBadge>
-                <span className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] text-right">
+                <span className="text-xs text-[var(--muted)] text-right">
                   {new Date(note.date_creation).toLocaleDateString("fr-FR")}
                   {note.saisi_par_email ? ` — ${note.saisi_par_email}` : ""}
                 </span>

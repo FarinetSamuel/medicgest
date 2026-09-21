@@ -34,32 +34,32 @@ export function NotificationRow({
 
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] last:border-b-0 ${
-        nonLue ? "bg-[var(--color-brand-50)] dark:bg-white/5" : ""
+      className={`flex items-start gap-3 px-4 py-3 border-b border-[var(--hairline)] last:border-b-0 ${
+        nonLue ? "bg-[color-mix(in_srgb,var(--accent)_8%,var(--surface))] dark:bg-white/5" : ""
       }`}
     >
-      <div className="mt-0.5 shrink-0 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+      <div className="mt-0.5 shrink-0 text-[var(--muted)]">
         <categorie.icone size={18} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <p className={`text-sm ${nonLue ? "font-semibold" : "font-medium"}`}>{notification.titre}</p>
-          <span className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] shrink-0">
+          <span className="text-xs text-[var(--muted)] shrink-0">
             {new Date(notification.date_creation).toLocaleString("fr-FR")}
           </span>
         </div>
-        <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-0.5">
+        <p className="text-sm text-[var(--muted)] mt-0.5">
           {notification.message}
         </p>
         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-          <span className="inline-flex items-center gap-1 text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+          <span className="inline-flex items-center gap-1 text-xs text-[var(--muted)]">
             <canal.icone size={12} /> {canal.label}
           </span>
           <StatusBadge ton={STATUTS[notification.statut].ton}>{STATUTS[notification.statut].label}</StatusBadge>
           {nonLue && (
             <button
               onClick={() => onMarquerLue(notification)}
-              className="text-xs font-medium text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+              className="text-xs font-medium text-[var(--accent)] hover:underline"
             >
               Marquer comme lue
             </button>

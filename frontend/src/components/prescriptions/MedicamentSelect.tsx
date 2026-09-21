@@ -62,7 +62,7 @@ export function MedicamentSelect({
             {valeur.denomination}
             {valeur.dosage ? ` — ${valeur.dosage}` : ""}
           </span>
-          <span className="text-xs text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)]">
+          <span className="text-xs text-[var(--accent)]">
             Changer
           </span>
         </button>
@@ -70,7 +70,7 @@ export function MedicamentSelect({
         <div className="relative">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
           />
           <input
             autoFocus
@@ -84,13 +84,13 @@ export function MedicamentSelect({
       )}
 
       {ouvert && requete.trim().length >= 3 && (
-        <div className="absolute z-10 mt-1 w-full max-h-64 overflow-y-auto bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg shadow-lg">
+        <div className="absolute z-10 mt-1 w-full max-h-64 overflow-y-auto bg-[var(--surface)] border border-[var(--border-strong)] rounded-[var(--radius-control)]">
           {recherche ? (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-3">
+            <p className="text-sm text-[var(--muted)] p-3">
               Recherche...
             </p>
           ) : resultats.length === 0 ? (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-3">
+            <p className="text-sm text-[var(--muted)] p-3">
               Aucun médicament trouvé.
             </p>
           ) : (
@@ -107,7 +107,7 @@ export function MedicamentSelect({
                 className="w-full text-left px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/5"
               >
                 <div className="font-medium">{m.denomination}</div>
-                <div className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                <div className="text-xs text-[var(--muted)]">
                   {m.dosage || m.forme_pharmaceutique || m.code_cis}
                 </div>
               </button>

@@ -69,14 +69,14 @@ export function PrescriptionCard({
   }
 
   return (
-    <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl overflow-hidden">
+    <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] overflow-hidden">
       <button onClick={() => setOuvert((o) => !o)} className="w-full text-left px-4 py-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium truncate">{prescription.medicament_nom}</span>
             <StatusBadge ton={STATUTS[prescription.statut].ton}>{STATUTS[prescription.statut].label}</StatusBadge>
           </div>
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-0.5">
+          <p className="text-sm text-[var(--muted)] mt-0.5">
             {prescription.dose_quantite} {prescription.dose_unite} ·{" "}
             {prescription.type_prise === "reguliere"
               ? `Régulière${prescription.frequence_par_jour ? ` (${prescription.frequence_par_jour}×/jour)` : ""}`
@@ -88,9 +88,9 @@ export function PrescriptionCard({
       </button>
 
       {ouvert && (
-        <div className="px-4 pb-4 space-y-4 border-t border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] pt-3">
+        <div className="px-4 pb-4 space-y-4 border-t border-[var(--hairline)] pt-3">
           {prescription.instructions && (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <p className="text-sm text-[var(--muted)]">
               {prescription.instructions}
             </p>
           )}
@@ -113,7 +113,7 @@ export function PrescriptionCard({
           />
 
           {(peutModifierPrescription || peutSupprimer) && (
-            <div className="flex items-center justify-between pt-2 border-t border-[var(--color-border-light)] dark:border-[var(--color-border-dark)]">
+            <div className="flex items-center justify-between pt-2 border-t border-[var(--hairline)]">
               {peutModifierPrescription ? (
                 <select
                   value={prescription.statut}
@@ -131,7 +131,7 @@ export function PrescriptionCard({
                 <button
                   onClick={() => setConfirmationSuppression(true)}
                   aria-label="Supprimer la prescription"
-                  className="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] text-[var(--color-danger)]"
+                  className="p-1.5 rounded-[var(--radius-control)] hover:bg-[var(--hairline-soft)] dark:hover:bg-[var(--hairline)] text-[var(--statut-rupture)]"
                 >
                   <Trash2 size={15} />
                 </button>
@@ -150,13 +150,13 @@ export function PrescriptionCard({
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setConfirmationSuppression(false)}
-              className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+              className="text-sm px-4 py-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
             >
               Annuler
             </button>
             <button
               onClick={supprimer}
-              className="text-sm px-4 py-2 rounded-lg bg-[var(--color-danger)] text-white hover:opacity-90"
+              className="text-sm px-4 py-2 rounded-[var(--radius-control)] bg-[var(--statut-rupture)] text-[var(--surface)] hover:opacity-90"
             >
               Supprimer
             </button>

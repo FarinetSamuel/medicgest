@@ -21,11 +21,11 @@ export function MouvementsSection({ boiteId }: { boiteId: string }) {
 
   return (
     <div>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mb-2">
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted)] mb-2">
         Mouvements
       </h4>
       {mouvements.length === 0 ? (
-        <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-xs text-[var(--muted)]">
           Aucun mouvement enregistré.
         </p>
       ) : (
@@ -35,13 +35,13 @@ export function MouvementsSection({ boiteId }: { boiteId: string }) {
             return (
               <li
                 key={m.id}
-                className="flex items-center justify-between text-xs bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] rounded-lg px-2.5 py-1.5"
+                className="flex items-center justify-between text-xs bg-[var(--bg)] rounded-[var(--radius-control)] px-2.5 py-1.5"
               >
-                <span className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+                <span className="text-[var(--muted)]">
                   {new Date(m.date_creation).toLocaleString("fr-FR")}
                   {m.motif ? ` · ${m.motif}` : ""}
                 </span>
-                <span className={positif ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"}>
+                <span className={positif ? "text-[var(--statut-conforme)]" : "text-[var(--statut-rupture)]"}>
                   {positif ? "+" : ""}
                   {m.quantite}
                 </span>

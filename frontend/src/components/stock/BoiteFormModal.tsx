@@ -116,12 +116,12 @@ export function BoiteFormModal({
           <div>
             <label className="block text-sm font-medium mb-1.5">Médicament</label>
             <MedicamentSelect valeur={medicament} onChoisir={setMedicament} />
-            {erreurs.medicament && <p className="text-xs text-[var(--color-danger)] mt-1">{erreurs.medicament}</p>}
+            {erreurs.medicament && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.medicament}</p>}
           </div>
         ) : (
           <div>
             <label className="block text-sm font-medium mb-1.5">Médicament</label>
-            <p className={`${champClasse} text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]`}>
+            <p className={`${champClasse} text-[var(--muted)]`}>
               {boite!.medicament_nom}
             </p>
           </div>
@@ -158,8 +158,8 @@ export function BoiteFormModal({
           </div>
         </div>
 
-        <fieldset className="border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-lg p-3 space-y-3">
-          <legend className="text-xs font-medium px-1 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <fieldset className="border border-[var(--hairline)] rounded-[var(--radius-control)] p-3 space-y-3">
+          <legend className="text-xs font-medium px-1 text-[var(--muted)]">
             Seuils d'alerte (facultatifs)
           </legend>
           <div className="grid grid-cols-2 gap-3">
@@ -177,7 +177,7 @@ export function BoiteFormModal({
               <label className="block text-xs mb-1">Jours restants estimés ≤</label>
               <input type="number" min="0" {...champ("seuil_alerte_jours")} className={champClasse} />
               {!modeCreation && boite!.jours_restants_estimes !== null && (
-                <p className="text-xs text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+                <p className="text-xs text-[var(--muted)] mt-1">
                   Actuellement estimé à ~{boite!.jours_restants_estimes} j, d'après la consommation récente.
                 </p>
               )}
@@ -193,14 +193,14 @@ export function BoiteFormModal({
           <button
             type="button"
             onClick={onFermer}
-            className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
           >
             Annuler
           </button>
           <button
             type="submit"
             disabled={enCours}
-            className="text-sm px-4 py-2 rounded-lg bg-[var(--color-brand-500)] text-white hover:bg-[var(--color-brand-600)] disabled:opacity-60"
+            className="text-sm px-4 py-2 rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] hover:brightness-95 disabled:opacity-60"
           >
             {enCours ? "Enregistrement..." : "Enregistrer"}
           </button>

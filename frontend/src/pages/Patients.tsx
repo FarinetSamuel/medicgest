@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
 import { api } from "../lib/api";
+import { titrePageClasse } from "../lib/ui";
 import { useAuth } from "../context/AuthContext";
 import { Modal } from "../components/Modal";
 import { PatientFormModal } from "../components/patients/PatientFormModal";
@@ -83,7 +84,7 @@ export function Patients() {
   const peutCreer = role === "admin" || role === "medecin";
 
   if (chargement) {
-    return <p className="text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">Chargement...</p>;
+    return <p className="text-[var(--muted)]">Chargement...</p>;
   }
 
   // Rôle patient : pas de liste (l'API ne renvoie que sa propre fiche),
@@ -91,13 +92,13 @@ export function Patients() {
   if (role === "patient") {
     if (!patientSelectionne) {
       return (
-        <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+        <p className="text-sm text-[var(--muted)]">
           Aucune fiche patient associée à votre compte.
         </p>
       );
     }
     return (
-      <div className="max-w-2xl bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl p-6">
+      <div className="max-w-2xl bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] p-6">
         <DetailPatient
           patient={patientSelectionne}
           peutEditer={false}
@@ -117,15 +118,15 @@ export function Patients() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-[var(--font-display)] text-2xl font-semibold">Patients</h1>
-          <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] mt-1">
+          <h1 className={titrePageClasse}>Patients</h1>
+          <p className="text-sm text-[var(--muted)] mt-1">
             {role === "medecin" ? "Patients que vous suivez activement." : "Ensemble des patients."}
           </p>
         </div>
         {peutCreer && (
           <button
             onClick={() => setModalCreation(true)}
-            className="inline-flex items-center gap-2 text-sm font-medium rounded-lg bg-[var(--color-brand-500)] text-white px-4 py-2.5 hover:bg-[var(--color-brand-600)] transition-colors shrink-0"
+            className="inline-flex items-center gap-2 text-sm font-medium rounded-[var(--radius-control)] bg-[var(--cta)] text-[var(--cta-ink)] px-4 py-2.5 hover:brightness-95 transition-colors shrink-0"
           >
             <Plus size={16} /> Nouveau patient
           </button>
@@ -137,19 +138,19 @@ export function Patients() {
           <div className="relative">
             <Search
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
             />
             <input
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder="Rechercher par dossier ou email..."
-              className="w-full rounded-lg border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-brand-500)]"
+              className="w-full rounded-[var(--radius-control)] border border-[var(--hairline)] bg-transparent pl-9 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
             />
           </div>
 
-          <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl divide-y divide-[var(--color-border-light)] dark:divide-[var(--color-border-dark)] overflow-hidden">
+          <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] divide-y divide-[var(--hairline)] overflow-hidden">
             {patientsFiltres.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] p-4">
+              <p className="text-sm text-[var(--muted)] p-4">
                 Aucun patient {recherche ? "ne correspond à la recherche" : "pour le moment"}.
               </p>
             ) : (
@@ -159,7 +160,7 @@ export function Patients() {
                   onClick={() => setSelectionId(p.id)}
                   className={`w-full text-left px-4 py-3 text-sm transition-colors ${
                     p.id === selectionId
-                      ? "bg-[var(--color-brand-500)] text-white"
+                      ? "bg-[var(--cta)] text-[var(--cta-ink)]"
                       : "hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
@@ -171,8 +172,8 @@ export function Patients() {
                   <div
                     className={
                       p.id === selectionId
-                        ? "text-white/80 truncate"
-                        : "text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] truncate"
+                        ? "text-[var(--cta-ink)]/80 truncate"
+                        : "text-[var(--muted)] truncate"
                     }
                   >
                     {p.numero_dossier} · {p.utilisateur_email}
@@ -187,14 +188,14 @@ export function Patients() {
               <button
                 disabled={!pagePrecedente}
                 onClick={() => pagePrecedente && charger(pagePrecedente)}
-                className="disabled:opacity-40 text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+                className="disabled:opacity-40 text-[var(--accent)] hover:underline"
               >
                 ← Précédent
               </button>
               <button
                 disabled={!pageSuivante}
                 onClick={() => pageSuivante && charger(pageSuivante)}
-                className="disabled:opacity-40 text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)] hover:underline"
+                className="disabled:opacity-40 text-[var(--accent)] hover:underline"
               >
                 Suivant →
               </button>
@@ -202,7 +203,7 @@ export function Patients() {
           )}
         </div>
 
-        <div className="bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] border border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] rounded-xl p-6">
+        <div className="bg-[var(--surface)] border border-[var(--hairline)] rounded-[var(--radius-card)] p-6">
           {patientSelectionne ? (
             <DetailPatient
               patient={patientSelectionne}
@@ -216,7 +217,7 @@ export function Patients() {
               onPatientMaj={remplacerPatient}
             />
           ) : (
-            <p className="text-sm text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)]">
+            <p className="text-sm text-[var(--muted)]">
               Sélectionnez un patient dans la liste.
             </p>
           )}
@@ -243,13 +244,13 @@ export function Patients() {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setPatientASupprimer(null)}
-              className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+              className="text-sm px-4 py-2 rounded-[var(--radius-control)] text-[var(--muted)] hover:bg-black/5 dark:hover:bg-white/5"
             >
               Annuler
             </button>
             <button
               onClick={confirmerSuppression}
-              className="text-sm px-4 py-2 rounded-lg bg-[var(--color-danger)] text-white hover:opacity-90"
+              className="text-sm px-4 py-2 rounded-[var(--radius-control)] bg-[var(--statut-rupture)] text-[var(--surface)] hover:opacity-90"
             >
               Supprimer
             </button>
