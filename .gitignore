@@ -29,3 +29,6 @@ npm-debug.log*
 .vscode/
 .idea/
 *.swp
+
+# Handoff design (bundle de référence, pas du code de production)
+/design_handoff_medicgest_branding/
