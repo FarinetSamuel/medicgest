@@ -1,4 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+/* Charte graphique Medicgest (design_handoff_medicgest_branding/README.md) :
+   IBM Plex Sans/Mono, chargées en plus de Fraunces/Inter tant que les
+   composants existants n'ont pas été migrés vers les nouveaux tokens
+   ci-dessous. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
 @import "tailwindcss";
 
 /* Tailwind v4 fait par défaut correspondre `dark:` à
@@ -39,6 +44,38 @@
 
   --font-display: "Fraunces", ui-serif, Georgia, serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* --- Charte graphique Medicgest ---------------------------------
+     Nouveau jeu de tokens (design_handoff_medicgest_branding/README.md),
+     en parallèle des --color-brand-*/-light/-dark ci-dessus tant que les
+     composants n'ont pas été migrés. Convention volontairement différente
+     de celle au-dessus : une seule variable par nom, redéfinie dans le
+     bloc :root.dark plus bas — un composant écrit `var(--accent)` une
+     fois, sans dupliquer `dark:` à chaque usage. Valeurs ci-dessous =
+     mode clair (valeurs par défaut) ; voir :root.dark pour le mode sombre. */
+  --bg: #f7f9f9;
+  --surface: #ffffff;
+  --surface-2: #10171c; /* fond de tuile du logo — le README ne documente
+    pas de valeur claire distincte : identique à --ink en mode clair. */
+  --ink: #10171c;
+  --ink-2: #3c4a52;
+  --muted: #5b6a72;
+  --hairline: #e3e8ea;
+  --hairline-soft: #eef2f3;
+  --border-strong: #d6dee1;
+  --accent: #17707f;
+  --accent-2: #4a63a8;
+
+  --statut-conforme: #2f7d5b;
+  --statut-attention: #b07d1f;
+  --statut-rupture: #a33a34;
+
+  --radius-control: 3px;
+  --radius-card: 4px;
+  --radius-shell: 6px;
+
+  --font-plex-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-plex-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -46,6 +83,23 @@
 }
 :root.dark {
   color-scheme: dark;
+
+  /* Charte graphique Medicgest — mode sombre. --ink-2 et --hairline-soft
+     n'ont pas de valeur sombre distincte dans le README : ils gardent leur
+     valeur claire tant qu'aucune n'est spécifiée. */
+  --bg: #0d1216;
+  --surface: #131a20;
+  --surface-2: #1b262d;
+  --ink: #e8eef0;
+  --muted: #8fa0a8;
+  --hairline: #1f2a31;
+  --border-strong: #2a3740;
+  --accent: #56b6c4;
+  --accent-2: #8d9fe0;
+
+  --statut-conforme: #5cb98d;
+  --statut-attention: #d6a94f;
+  --statut-rupture: #e0706a;
 }
 
 body {

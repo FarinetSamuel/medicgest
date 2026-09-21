@@ -6,6 +6,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { usePays } from "../context/PaysContext";
+import { Logo } from "./Logo";
 
 const LIENS = [
   { to: "/", label: "Tableau de bord", icone: LayoutDashboard, fin: true },
@@ -32,9 +33,7 @@ export function Layout() {
     <div className="flex min-h-screen bg-[var(--color-bg-light)] dark:bg-[var(--color-bg-dark)] text-[var(--color-text-light)] dark:text-[var(--color-text-dark)]">
       <aside className="w-64 shrink-0 border-r border-[var(--color-border-light)] dark:border-[var(--color-border-dark)] bg-[var(--color-surface-light)] dark:bg-[var(--color-surface-dark)] flex flex-col">
         <div className="px-5 py-5 border-b border-[var(--color-border-light)] dark:border-[var(--color-border-dark)]">
-          <span className="font-[var(--font-display)] text-xl font-semibold text-[var(--color-brand-600)] dark:text-[var(--color-brand-300)]">
-            medicgest
-          </span>
+          <Logo size={28} wordmark="compact" />
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {LIENS.filter((lien) => !lien.reserveAdmin || utilisateur?.role === "admin").map(
