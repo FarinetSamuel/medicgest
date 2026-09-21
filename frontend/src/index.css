@@ -47,8 +47,8 @@
 
   /* --- Charte graphique Medicgest ---------------------------------
      Nouveau jeu de tokens (design_handoff_medicgest_branding/README.md),
-     en parallèle des --color-brand-*/-light/-dark ci-dessus tant que les
-     composants n'ont pas été migrés. Convention volontairement différente
+     en parallèle des --color-brand- et -light/-dark existants ci-dessus
+     tant que les composants n'ont pas été migrés. Convention volontairement différente
      de celle au-dessus : une seule variable par nom, redéfinie dans le
      bloc :root.dark plus bas — un composant écrit `var(--accent)` une
      fois, sans dupliquer `dark:` à chaque usage. Valeurs ci-dessous =
