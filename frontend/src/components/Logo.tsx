@@ -76,8 +76,9 @@ export function Logo({
   /**
    * "full" : lockup de référence (medic/gest 34px + eyebrow mono, gap
    * 0.26×size) — contextes de marque (écran de connexion, à propos...).
-   * "compact" : recette "App bar" du README (medicgest 15px, gap fixe
-   * 10px, sans eyebrow) — barre de navigation.
+   * "compact" : recette "App bar" du README (medicgest, sans eyebrow),
+   * proportions dérivées de la référence 28px tuile / 15px texte / 10px
+   * gap — barre de navigation.
    * false : symbole seul.
    */
   wordmark?: "full" | "compact" | false;
@@ -90,7 +91,7 @@ export function Logo({
   return (
     <span
       className={`inline-flex items-center ${className ?? ""}`}
-      style={{ gap: wordmark === "full" ? size * 0.26 : 10 }}
+      style={{ gap: wordmark === "full" ? size * 0.26 : size * (10 / 28) }}
     >
       <LogoSymbol size={size} variant={variant} />
       {wordmark === "full" ? (
@@ -125,7 +126,7 @@ export function Logo({
           style={{
             fontFamily: "var(--font-plex-sans)",
             fontWeight: 600,
-            fontSize: 15,
+            fontSize: size * (15 / 28),
             letterSpacing: "-0.035em",
             lineHeight: 1,
             color: "var(--ink)",

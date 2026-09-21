@@ -33,7 +33,7 @@ export function Layout() {
     <div className="flex min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <aside className="w-64 shrink-0 border-r border-[var(--hairline)] bg-[var(--surface)] flex flex-col">
         <div className="px-5 py-5 border-b border-[var(--hairline)]">
-          <Logo size={28} wordmark="compact" />
+          <Logo size={36} wordmark="compact" />
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
           {LIENS.filter((lien) => !lien.reserveAdmin || utilisateur?.role === "admin").map(
