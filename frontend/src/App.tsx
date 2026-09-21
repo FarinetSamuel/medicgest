@@ -2,7 +2,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import { PaysProvider } from "./context/PaysContext";
 import { RouteProtegee } from "./components/RouteProtegee";
 import { Layout } from "./components/Layout";
 import { Connexion } from "./pages/Connexion";
@@ -18,7 +17,6 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <PaysProvider>
           <BrowserRouter>
             <Toaster position="top-right" richColors closeButton />
             <Routes>
@@ -40,7 +38,6 @@ export default function App() {
               </Route>
             </Routes>
           </BrowserRouter>
-        </PaysProvider>
       </AuthProvider>
     </ThemeProvider>
   );

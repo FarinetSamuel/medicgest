@@ -91,3 +91,66 @@ class MedicamentFiltreParPaysAPITest(APITestCase):
     def test_combine_avec_la_recherche(self):
         response = self.client.get("/api/v1/medicaments/?source=BDPM&search=DOLIPRANE")
         self.assertEqual(response.data["count"], 1)
+
+
+class MedicamentFiltreParPatientAPITest(APITestCase):
+    """
+    ?patient=<uuid> : le référentiel est celui du patient
+    (Patient.referentiel_medicaments), décidé côté backend.
+    """
+
+    def setUp(self):
+        import datetime
+
+        from apps.patients.models import Patient
+        from apps.utilisateurs.models import ROLE_PATIENT
+
+        self.admin = Utilisateur.objects.create_user(
+            username="admin3", email="admin3@example.com", password="motdepasse123"
+        )
+        self.admin.groups.add(Group.objects.get_or_create(name=ROLE_ADMIN)[0])
+        self.user_patient = Utilisateur.objects.create_user(
+            username="pat3", email="pat3@example.com", password="motdepasse123"
+        )
+        self.user_patient.groups.add(Group.objects.get_or_create(name=ROLE_PATIENT)[0])
+        self.autre_user = Utilisateur.objects.create_user(
+            username="pat4", email="pat4@example.com", password="motdepasse123"
+        )
+        self.autre_user.groups.add(Group.objects.get_or_create(name=ROLE_PATIENT)[0])
+        self.patient_ch = Patient.objects.create(
+            utilisateur=self.user_patient,
+            numero_dossier="DOS-REF-CH",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+            referentiel_medicaments=Medicament.Source.SWISSMEDIC,
+        )
+        self.patient_fr = Patient.objects.create(
+            utilisateur=self.autre_user,
+            numero_dossier="DOS-REF-FR",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        Medicament.objects.create(code_cis="FR-9", denomination="DOLIPRANE")
+        Medicament.objects.create(code_cis="CH-9", denomination="DAFALGAN", source=Medicament.Source.SWISSMEDIC)
+
+    def test_admin_voit_le_referentiel_du_patient(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.get(f"/api/v1/medicaments/?patient={self.patient_ch.id}")
+        self.assertEqual([m["denomination"] for m in response.data["results"]], ["DAFALGAN"])
+        response = self.client.get(f"/api/v1/medicaments/?patient={self.patient_fr.id}")
+        self.assertEqual([m["denomination"] for m in response.data["results"]], ["DOLIPRANE"])
+
+    def test_patient_voit_le_referentiel_de_sa_fiche(self):
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.get(f"/api/v1/medicaments/?patient={self.patient_ch.id}")
+        self.assertEqual(response.data["count"], 1)
+
+    def test_patient_inaccessible_donne_liste_vide(self):
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.get(f"/api/v1/medicaments/?patient={self.patient_fr.id}")
+        self.assertEqual(response.data["count"], 0)
+
+    def test_identifiant_invalide_donne_liste_vide(self):
+        self.client.force_authenticate(self.admin)
+        response = self.client.get("/api/v1/medicaments/?patient=pas-un-uuid")
+        self.assertEqual(response.data["count"], 0)

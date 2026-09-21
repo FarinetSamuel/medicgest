@@ -49,8 +49,29 @@ class PatientSerializer(serializers.ModelSerializer):
             "contact_urgence_telephone",
             "contact_urgence_lien",
             "preference_alerte_stock",
+            "referentiel_medicaments",
             "notes_medicales",
             "date_creation",
             "date_modification",
         ]
         read_only_fields = ["id", "date_creation", "date_modification"]
+
+    def validate_referentiel_medicaments(self, valeur):
+        """
+        Changer de référentiel alors que le patient a déjà des
+        prescriptions ou des boîtes issues de l'autre catalogue
+        recréerait exactement le mélange que ce champ doit empêcher :
+        refusé, il faut d'abord retirer ces données.
+        """
+        if self.instance is None or valeur == self.instance.referentiel_medicaments:
+            return valeur
+        a_des_donnees = (
+            self.instance.prescriptions.exclude(medicament__source=valeur).exists()
+            or self.instance.boites.exclude(medicament__source=valeur).exists()
+        )
+        if a_des_donnees:
+            raise serializers.ValidationError(
+                "Ce patient a déjà des prescriptions ou des boîtes du référentiel actuel : "
+                "changer de référentiel les mélangerait. Supprimez-les d'abord."
+            )
+        return valeur

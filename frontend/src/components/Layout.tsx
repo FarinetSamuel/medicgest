@@ -5,7 +5,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
-import { usePays } from "../context/PaysContext";
 import { Logo } from "./Logo";
 
 const LIENS = [
@@ -21,7 +20,6 @@ const LIENS = [
 export function Layout() {
   const { utilisateur, deconnexion } = useAuth();
   const { theme, basculerTheme } = useTheme();
-  const { pays, setPays } = usePays();
   const navigate = useNavigate();
 
   function handleDeconnexion() {
@@ -76,20 +74,7 @@ export function Layout() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 shrink-0 border-b border-[var(--hairline)] bg-[var(--surface)] flex items-center justify-between px-6">
-          <label className="flex items-center gap-2 text-sm">
-            <span className="text-[var(--muted)]">
-              Référentiel
-            </span>
-            <select
-              value={pays}
-              onChange={(e) => setPays(e.target.value as typeof pays)}
-              title="Le référentiel médicaments et les prescriptions affichées correspondent au pays choisi ici."
-              className="rounded-[var(--radius-control)] border border-[var(--hairline)] bg-transparent px-2 py-1.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            >
-              <option value="BDPM">France (BDPM)</option>
-              <option value="SWISSMEDIC">Suisse (Swissmedic)</option>
-            </select>
-          </label>
+          <div />
           <div className="text-sm text-right">
             <div className="font-medium">{utilisateur?.prenom} {utilisateur?.nom}</div>
             <div className="text-[var(--muted)] capitalize">

@@ -30,6 +30,7 @@ export interface Patient {
   contact_urgence_telephone: string;
   contact_urgence_lien: string;
   preference_alerte_stock: "patient" | "medecin" | "les_deux";
+  referentiel_medicaments: "BDPM" | "SWISSMEDIC";
   notes_medicales: NoteMedicale[];
   date_creation: string;
   date_modification: string;
@@ -99,7 +100,8 @@ export interface Prescription {
   medicament: string;
   medicament_nom: string;
   /** Medicament.source du médicament prescrit ("BDPM" ou "SWISSMEDIC") —
-   * sert à filtrer l'affichage par pays choisi dans l'en-tête. */
+   * lecture seule ; le référentiel autorisé est celui du patient
+   * (Patient.referentiel_medicaments), imposé par le backend. */
   medicament_source: string;
   medecin_prescripteur: string;
   type_prise: "reguliere" | "reserve";

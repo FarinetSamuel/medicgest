@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { api } from "../../lib/api";
 import { champClasse } from "../../lib/ui";
-import { usePays } from "../../context/PaysContext";
 import type { Medicament, PageResultat } from "../../types";
 
 /**
@@ -11,20 +10,20 @@ import type { Medicament, PageResultat } from "../../types";
  * que la requête ne fait pas au moins 3 caractères, pour éviter de
  * recharger la liste complète à chaque frappe.
  *
- * Filtrée par le pays choisi dans l'en-tête (?source=) : les référentiels
- * BDPM (France) et Swissmedic (Suisse) ne sont jamais mélangés dans un
- * même choix, pour éviter toute confusion entre deux catalogues dont les
- * noms de substances actives ne se recoupent pas (voir
+ * Filtrée côté backend par le référentiel du patient (?patient=, voir
+ * Patient.referentiel_medicaments) : les catalogues BDPM (France) et
+ * Swissmedic (Suisse) ne sont jamais mélangés dans un même choix (voir
  * Medicament.verification_interactions_fiable).
  */
 export function MedicamentSelect({
+  patientId,
   valeur,
   onChoisir,
 }: {
+  patientId: string;
   valeur: Medicament | null;
   onChoisir: (medicament: Medicament) => void;
 }) {
-  const { pays } = usePays();
   const [requete, setRequete] = useState("");
   const [resultats, setResultats] = useState<Medicament[]>([]);
   const [ouvert, setOuvert] = useState(false);
@@ -38,7 +37,7 @@ export function MedicamentSelect({
       setRecherche(true);
       try {
         const { data } = await api.get<PageResultat<Medicament>>("/medicaments/", {
-          params: { search: requete.trim(), source: pays },
+          params: { search: requete.trim(), patient: patientId },
         });
         setResultats(data.results);
       } finally {
@@ -48,7 +47,7 @@ export function MedicamentSelect({
     return () => {
       if (delai.current) clearTimeout(delai.current);
     };
-  }, [requete, pays]);
+  }, [requete, patientId]);
 
   return (
     <div className="relative">

@@ -569,3 +569,65 @@ class HoraireProgrammeAPITest(APITestCase):
         response = self.client.patch(f"/api/v1/horaires-programmes/{horaire.id}/", {"actif": False})
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["actif"])
+
+
+class ReferentielMedicamentsPatientTest(APITestCase):
+    """Un patient ne reçoit que des médicaments de son référentiel."""
+
+    def setUp(self):
+        self.admin = creer_utilisateur_avec_role("adminref@example.com", ROLE_ADMIN)
+        user_patient = creer_utilisateur_avec_role("patref@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=user_patient,
+            numero_dossier="DOS-REF-1",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+        )
+        self.med_fr = Medicament.objects.create(code_cis="REF-FR", denomination="DOLIPRANE")
+        self.med_ch = Medicament.objects.create(
+            code_cis="REF-CH", denomination="DAFALGAN", source=Medicament.Source.SWISSMEDIC
+        )
+        self.client.force_authenticate(self.admin)
+
+    def _prescrire(self, medicament):
+        return self.client.post(
+            "/api/v1/prescriptions/",
+            {
+                "patient": str(self.patient.id),
+                "medicament": str(medicament.id),
+                "type_prise": Prescription.TypePrise.REGULIERE,
+                "dose_quantite": "1.00",
+                "dose_unite": "comprimé",
+                "date_debut": "2026-01-01",
+                "medecin_prescripteur": str(self.admin.id),
+            },
+            format="json",
+        )
+
+    def test_medicament_du_bon_referentiel_accepte(self):
+        self.assertEqual(self._prescrire(self.med_fr).status_code, 201)
+
+    def test_medicament_de_l_autre_referentiel_refuse(self):
+        response = self._prescrire(self.med_ch)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("medicament", response.data)
+
+    def test_changement_de_referentiel_refuse_si_donnees_existantes(self):
+        self.assertEqual(self._prescrire(self.med_fr).status_code, 201)
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient.id}/",
+            {"referentiel_medicaments": "SWISSMEDIC"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("referentiel_medicaments", response.data)
+
+    def test_changement_de_referentiel_accepte_si_aucune_donnee(self):
+        response = self.client.patch(
+            f"/api/v1/patients/{self.patient.id}/",
+            {"referentiel_medicaments": "SWISSMEDIC"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._prescrire(self.med_ch).status_code, 201)
+        self.assertEqual(self._prescrire(self.med_fr).status_code, 400)

@@ -1,5 +1,10 @@
+from django.core.exceptions import ValidationError
 from rest_framework import filters, viewsets
 from rest_framework.permissions import IsAuthenticated
+
+from apps.patients.models import Patient
+from apps.patients.permissions import medecin_suit_patient
+from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
 
 from .models import Medicament
 from .serializers import MedicamentSerializer
@@ -36,7 +41,31 @@ class MedicamentViewSet(viewsets.ReadOnlyModelViewSet):
         filtre de confort.
         """
         queryset = super().get_queryset()
+        patient_id = self.request.query_params.get("patient")
+        if patient_id:
+            # ?patient=<uuid> : le référentiel est celui du patient
+            # (Patient.referentiel_medicaments), décidé côté backend. Prime
+            # sur ?source=. Un patient inaccessible à l'appelant donne une
+            # liste vide, sans révéler son existence.
+            patient = self._patient_accessible(patient_id)
+            return queryset.filter(source=patient.referentiel_medicaments) if patient else queryset.none()
         source = self.request.query_params.get("source")
         if source in Medicament.Source.values:
             queryset = queryset.filter(source=source)
         return queryset
+
+    def _patient_accessible(self, patient_id):
+        user = self.request.user
+        try:
+            patient = Patient.objects.filter(pk=patient_id).first()
+        except (ValueError, ValidationError):
+            return None
+        if patient is None:
+            return None
+        if user.role == ROLE_ADMIN:
+            return patient
+        if user.role == ROLE_MEDECIN and medecin_suit_patient(user, patient):
+            return patient
+        if user.role == ROLE_PATIENT and patient.utilisateur_id == user.id:
+            return patient
+        return None

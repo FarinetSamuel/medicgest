@@ -3,6 +3,8 @@ import uuid
 from django.conf import settings
 from django.db import models
 
+from apps.medicaments.models import Medicament
+
 
 class Patient(models.Model):
     """
@@ -51,6 +53,19 @@ class Patient(models.Model):
         choices=PreferenceAlerteStock.choices,
         default=PreferenceAlerteStock.PATIENT,
         help_text="Qui reçoit les alertes de stock (quantité basse, jours restants bas, rupture).",
+    )
+
+    # Référentiel de médicaments (France BDPM / Suisse Swissmedic) propre à
+    # ce patient : ses prescriptions et ses boîtes ne peuvent référencer que
+    # des médicaments de cette source, pour ne jamais mélanger deux
+    # catalogues dont les noms de substances ne se recoupent pas (voir
+    # Medicament.verification_interactions_fiable). Validé dans les
+    # serializers de prescriptions et de stock.
+    referentiel_medicaments = models.CharField(
+        max_length=20,
+        choices=Medicament.Source.choices,
+        default=Medicament.Source.BDPM,
+        help_text="Référentiel de médicaments utilisé pour ce patient (France ou Suisse).",
     )
 
     date_creation = models.DateTimeField(auto_now_add=True)

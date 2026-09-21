@@ -4,7 +4,6 @@ import { Plus, Search } from "lucide-react";
 import { api, recupererToutesPages } from "../lib/api";
 import { titrePageClasse } from "../lib/ui";
 import { useAuth } from "../context/AuthContext";
-import { usePays } from "../context/PaysContext";
 import { PrescriptionFormModal } from "../components/prescriptions/PrescriptionFormModal";
 import { PrescriptionCard } from "../components/prescriptions/PrescriptionCard";
 import type { Patient, PageResultat, Prescription } from "../types";
@@ -12,7 +11,6 @@ import type { Patient, PageResultat, Prescription } from "../types";
 export function Prescriptions() {
   const { utilisateur } = useAuth();
   const role = utilisateur?.role;
-  const { pays } = usePays();
 
   const [patients, setPatients] = useState<Patient[]>([]);
   const [chargementPatients, setChargementPatients] = useState(role !== "patient");
@@ -43,10 +41,8 @@ export function Prescriptions() {
 
   // Prescriptions du patient sélectionné. Pas de filtre serveur par
   // patient (aucun filter_backend sur PrescriptionViewSet) — on récupère
-  // tout ce qui est accessible puis on filtre côté client. On ne présente
-  // que les prescriptions dont le médicament vient du référentiel du pays
-  // choisi dans l'en-tête : les deux catalogues (BDPM, Swissmedic) ne sont
-  // jamais mélangés dans un même écran.
+  // tout ce qui est accessible puis on filtre côté client. Le référentiel
+  // (France/Suisse) est propre à chaque patient et imposé par le backend.
   useEffect(() => {
     if (!patientSelectionneId) return;
     (async () => {
@@ -56,8 +52,7 @@ export function Prescriptions() {
         setPrescriptions(
           toutes.filter(
             (p) =>
-              (role === "patient" || p.patient === patientSelectionneId) &&
-              p.medicament_source === pays
+              role === "patient" || p.patient === patientSelectionneId
           )
         );
       } catch {
@@ -66,7 +61,7 @@ export function Prescriptions() {
         setChargementPrescriptions(false);
       }
     })();
-  }, [patientSelectionneId, role, pays]);
+  }, [patientSelectionneId, role]);
 
   function ajouterPrescription(prescription: Prescription) {
     setPrescriptions((liste) => [prescription, ...liste]);

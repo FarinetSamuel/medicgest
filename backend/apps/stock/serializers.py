@@ -44,6 +44,18 @@ class BoiteSerializer(serializers.ModelSerializer):
             "quantite_restante": {"required": False},
         }
 
+    def validate(self, attrs):
+        patient = attrs.get("patient") or getattr(self.instance, "patient", None)
+        medicament = attrs.get("medicament") or getattr(self.instance, "medicament", None)
+        if patient and medicament and medicament.source != patient.referentiel_medicaments:
+            raise serializers.ValidationError(
+                {
+                    "medicament": "Ce médicament n'appartient pas au référentiel du patient "
+                    f"({patient.get_referentiel_medicaments_display()})."
+                }
+            )
+        return attrs
+
     def create(self, validated_data):
         # Par défaut, une boîte neuve est pleine : quantite_restante =
         # quantite_initiale si non précisée explicitement (ex. import

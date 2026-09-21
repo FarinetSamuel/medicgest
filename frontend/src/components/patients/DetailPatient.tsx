@@ -11,6 +11,11 @@ const SEXE_LABELS: Record<Patient["sexe"], string> = {
   A: "Autre / non précisé",
 };
 
+const REFERENTIEL_LABELS: Record<Patient["referentiel_medicaments"], string> = {
+  BDPM: "France (BDPM)",
+  SWISSMEDIC: "Suisse (Swissmedic)",
+};
+
 export function DetailPatient({
   patient,
   peutEditer,
@@ -75,6 +80,10 @@ export function DetailPatient({
         <div>
           <span className="text-[var(--muted)]">Sexe</span>
           <p className="mt-0.5">{SEXE_LABELS[patient.sexe]}</p>
+        </div>
+        <div>
+          <span className="text-[var(--muted)]">Référentiel de médicaments</span>
+          <p className="mt-0.5">{REFERENTIEL_LABELS[patient.referentiel_medicaments]}</p>
         </div>
       </div>
 

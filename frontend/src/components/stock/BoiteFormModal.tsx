@@ -115,7 +115,7 @@ export function BoiteFormModal({
         {modeCreation ? (
           <div>
             <label className="block text-sm font-medium mb-1.5">Médicament</label>
-            <MedicamentSelect valeur={medicament} onChoisir={setMedicament} />
+            <MedicamentSelect patientId={patientId} valeur={medicament} onChoisir={setMedicament} />
             {erreurs.medicament && <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.medicament}</p>}
           </div>
         ) : (

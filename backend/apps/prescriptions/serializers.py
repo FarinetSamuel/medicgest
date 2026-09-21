@@ -49,6 +49,15 @@ class PrescriptionSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
+        patient = attrs.get("patient") or getattr(self.instance, "patient", None)
+        medicament = attrs.get("medicament") or getattr(self.instance, "medicament", None)
+        if patient and medicament and medicament.source != patient.referentiel_medicaments:
+            raise serializers.ValidationError(
+                {
+                    "medicament": "Ce médicament n'appartient pas au référentiel du patient "
+                    f"({patient.get_referentiel_medicaments_display()})."
+                }
+            )
         type_prise = attrs.get("type_prise") or getattr(self.instance, "type_prise", None)
         if type_prise == Prescription.TypePrise.REGULIERE and attrs.get("dose_max_par_jour"):
             raise serializers.ValidationError(

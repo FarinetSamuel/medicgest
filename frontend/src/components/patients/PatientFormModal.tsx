@@ -14,6 +14,7 @@ interface ChampsFormulaire {
   contact_urgence_nom: string;
   contact_urgence_telephone: string;
   contact_urgence_lien: string;
+  referentiel_medicaments: string; // "BDPM" | "SWISSMEDIC"
 }
 
 const VIDE: ChampsFormulaire = {
@@ -24,6 +25,7 @@ const VIDE: ChampsFormulaire = {
   contact_urgence_nom: "",
   contact_urgence_telephone: "",
   contact_urgence_lien: "",
+  referentiel_medicaments: "BDPM",
 };
 
 export function PatientFormModal({
@@ -50,6 +52,7 @@ export function PatientFormModal({
           contact_urgence_nom: patient.contact_urgence_nom,
           contact_urgence_telephone: patient.contact_urgence_telephone,
           contact_urgence_lien: patient.contact_urgence_lien,
+          referentiel_medicaments: patient.referentiel_medicaments,
         }
       : VIDE
   );
@@ -181,6 +184,21 @@ export function PatientFormModal({
               <option value="A">Autre / non précisé</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1.5">Référentiel de médicaments</label>
+          <select required {...champ("referentiel_medicaments")} className={champClasse}>
+            <option value="BDPM">France (BDPM)</option>
+            <option value="SWISSMEDIC">Suisse (Swissmedic)</option>
+          </select>
+          <p className="text-xs text-[var(--muted)] mt-1">
+            Les prescriptions et le stock de ce patient n'utilisent que ce référentiel. Modifiable
+            tant que le patient n'a ni prescription ni boîte de l'autre référentiel.
+          </p>
+          {erreurs.referentiel_medicaments && (
+            <p className="text-xs text-[var(--statut-rupture)] mt-1">{erreurs.referentiel_medicaments}</p>
+          )}
         </div>
 
         <fieldset className="border border-[var(--hairline)] rounded-[var(--radius-control)] p-3 space-y-3">
