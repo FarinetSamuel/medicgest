@@ -7,6 +7,24 @@ import { useAuth } from "../../context/AuthContext";
 import { MedicamentSelect } from "./MedicamentSelect";
 import type { Medicament, PatientMedecin, Prescription, UtilisateurCompte } from "../../types";
 
+// Suggestions courantes pour l'unité de dose — le backend (dose_unite) reste
+// un CharField libre sans choices, donc une valeur hors liste est acceptée.
+const UNITES_SUGGEREES = [
+  "comprimé",
+  "gélule",
+  "ml",
+  "mg",
+  "µg",
+  "goutte",
+  "sachet",
+  "dose",
+  "patch",
+  "injection",
+  "cuillère à café",
+  "cuillère à soupe",
+  "application",
+];
+
 export function PrescriptionFormModal({
   patientId,
   onFermer,
@@ -209,11 +227,17 @@ export function PrescriptionFormModal({
             <label className="block text-sm font-medium mb-1.5">Unité</label>
             <input
               required
+              list="unites-suggerees"
               placeholder="comprimé, ml, mg..."
               value={doseUnite}
               onChange={(e) => setDoseUnite(e.target.value)}
               className={champClasse}
             />
+            <datalist id="unites-suggerees">
+              {UNITES_SUGGEREES.map((unite) => (
+                <option key={unite} value={unite} />
+              ))}
+            </datalist>
           </div>
         </div>
 

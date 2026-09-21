@@ -117,7 +117,10 @@ export function Prescriptions() {
   // Enregistrement des prises : le patient garde un accès complet sur ses
   // propres prises (auto-enregistrement d'une prise de réserve).
   const peutModifierPrises = role === "admin" || role === "medecin" || role === "patient";
-  const peutSupprimer = role === "admin";
+  // Suppression : alignée sur la permission backend (PeutAccederALaPrescription)
+  // — admin toujours, médecin suiveur du patient (déjà garanti puisque seules
+  // les prescriptions de patients suivis sont visibles ici).
+  const peutSupprimer = role === "admin" || role === "medecin";
 
   return (
     <div className="space-y-4">

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { champClasse } from "../../lib/ui";
+import { Modal } from "../Modal";
 import { StatusBadge } from "../StatusBadge";
 import { HorairesSection } from "./HorairesSection";
 import { PrisesSection } from "./PrisesSection";
@@ -32,6 +33,7 @@ export function PrescriptionCard({
   onSupprimee: (id: string) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
+  const [confirmationSuppression, setConfirmationSuppression] = useState(false);
 
   async function changerStatut(statut: Prescription["statut"]) {
     try {
@@ -50,6 +52,8 @@ export function PrescriptionCard({
       toast.success("Prescription supprimée");
     } catch {
       toast.error("Suppression impossible");
+    } finally {
+      setConfirmationSuppression(false);
     }
   }
 
@@ -125,7 +129,7 @@ export function PrescriptionCard({
               )}
               {peutSupprimer && (
                 <button
-                  onClick={supprimer}
+                  onClick={() => setConfirmationSuppression(true)}
                   aria-label="Supprimer la prescription"
                   className="p-1.5 rounded-lg hover:bg-[var(--color-danger-bg)] text-[var(--color-danger)]"
                 >
@@ -135,6 +139,29 @@ export function PrescriptionCard({
             </div>
           )}
         </div>
+      )}
+
+      {confirmationSuppression && (
+        <Modal titre="Supprimer cette prescription ?" onFermer={() => setConfirmationSuppression(false)} largeur="max-w-sm">
+          <p className="text-sm mb-4">
+            La prescription de <strong>{prescription.medicament_nom}</strong> et l'historique des prises associées
+            seront supprimés définitivement. Cette action est irréversible.
+          </p>
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => setConfirmationSuppression(false)}
+              className="text-sm px-4 py-2 rounded-lg text-[var(--color-muted-light)] dark:text-[var(--color-muted-dark)] hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={supprimer}
+              className="text-sm px-4 py-2 rounded-lg bg-[var(--color-danger)] text-white hover:opacity-90"
+            >
+              Supprimer
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );
