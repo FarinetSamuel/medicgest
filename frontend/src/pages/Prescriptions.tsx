@@ -119,8 +119,14 @@ export function Prescriptions() {
   const peutModifierPrises = role === "admin" || role === "medecin" || role === "patient";
   // Suppression : alignée sur la permission backend (PeutAccederALaPrescription)
   // — admin toujours, médecin suiveur du patient (déjà garanti puisque seules
-  // les prescriptions de patients suivis sont visibles ici).
-  const peutSupprimer = role === "admin" || role === "medecin";
+  // les prescriptions de patients suivis sont visibles ici), ou un patient
+  // qui détient la permission Django add_prescription (celle qui lui permet
+  // déjà d'en créer) — un patient qui peut ajouter sa propre prescription
+  // doit pouvoir revenir dessus.
+  const peutSupprimer =
+    role === "admin" ||
+    role === "medecin" ||
+    (role === "patient" && permissions.includes("prescriptions.add_prescription"));
 
   return (
     <div className="space-y-4">

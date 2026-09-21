@@ -8,7 +8,11 @@ class PeutAccederALaPrescription(permissions.BasePermission):
     """
     - admin : accès total
     - médecin : accès aux prescriptions des patients qu'il suit activement
-    - patient : lecture seule de ses propres prescriptions
+    - patient : lecture seule de ses propres prescriptions, sauf
+      suppression si le patient détient la permission Django
+      add_prescription (celle qui lui permet déjà d'en créer, accordée
+      via un Group dans l'admin) — un patient qui peut ajouter sa propre
+      prescription doit pouvoir revenir dessus.
     """
 
     def has_permission(self, request, view):
@@ -21,7 +25,13 @@ class PeutAccederALaPrescription(permissions.BasePermission):
         if user.role == ROLE_MEDECIN:
             return medecin_suit_patient(user, obj.patient)
         if user.role == ROLE_PATIENT:
-            return obj.patient.utilisateur_id == user.id and request.method in permissions.SAFE_METHODS
+            if obj.patient.utilisateur_id != user.id:
+                return False
+            if request.method in permissions.SAFE_METHODS:
+                return True
+            if request.method == "DELETE":
+                return user.has_perm("prescriptions.add_prescription")
+            return False
         return False
 
 

@@ -269,6 +269,69 @@ class PrescriptionAPITest(APITestCase):
         )
         self.assertEqual(response_patch.status_code, 403)
 
+    def test_patient_sans_permission_django_ne_peut_pas_supprimer_sa_prescription(self):
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.delete(f"/api/v1/prescriptions/{prescription.id}/")
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Prescription.objects.filter(id=prescription.id).exists())
+
+    def test_patient_avec_permission_django_peut_supprimer_sa_prescription(self):
+        """
+        Même permission Django add_prescription que pour la création : un
+        patient qui peut ajouter sa propre prescription doit pouvoir
+        revenir dessus.
+        """
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.delete(f"/api/v1/prescriptions/{prescription.id}/")
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(Prescription.objects.filter(id=prescription.id).exists())
+
+    def test_patient_avec_permission_django_ne_peut_pas_supprimer_la_prescription_dun_autre_patient(self):
+        autre_user_patient = creer_utilisateur_avec_role("patapi3@example.com", ROLE_PATIENT)
+        autre_patient = Patient.objects.create(
+            utilisateur=autre_user_patient,
+            numero_dossier="DOS-API-PRESC-3",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        prescription = Prescription.objects.create(
+            patient=autre_patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.delete(f"/api/v1/prescriptions/{prescription.id}/")
+        self.assertEqual(response.status_code, 404)
+        self.assertTrue(Prescription.objects.filter(id=prescription.id).exists())
+
     def test_medicament_source_reflete_le_pays_du_referentiel(self):
         """
         Le frontend filtre l'affichage des prescriptions par pays (BDPM
