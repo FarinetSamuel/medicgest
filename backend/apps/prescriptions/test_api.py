@@ -760,3 +760,58 @@ class ReferentielMedicamentsPatientTest(APITestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(self._prescrire(self.med_ch).status_code, 201)
         self.assertEqual(self._prescrire(self.med_fr).status_code, 400)
+
+    def test_modifier_la_quantite_d_un_horaire_met_a_jour_les_prises_attendues_futures(self):
+        """
+        Régression : la quantité d'un horaire passée de 1 à 2 n'était pas
+        reportée sur les prises déjà générées, et la confirmation
+        automatique ne décomptait alors qu'1 unité du stock au lieu de 2.
+        """
+        from apps.stock.models import Boite
+
+        from .logique import confirmer_prises_automatiques
+
+        horaire = HoraireProgramme.objects.create(prescription=self.prescription, heure="08:00", quantite=1)
+        maintenant = timezone.now()
+        future = Prise.objects.create(
+            prescription=self.prescription,
+            horaire_programme=horaire,
+            date_heure_prevue=maintenant + datetime.timedelta(hours=1),
+            quantite_prevue=1,
+        )
+        passee = Prise.objects.create(
+            prescription=self.prescription,
+            horaire_programme=horaire,
+            date_heure_prevue=maintenant - datetime.timedelta(hours=1),
+            quantite_prevue=1,
+        )
+        deja_prise = Prise.objects.create(
+            prescription=self.prescription,
+            horaire_programme=horaire,
+            date_heure_prevue=maintenant + datetime.timedelta(hours=2),
+            date_heure_reelle=maintenant,
+            quantite_prevue=1,
+            quantite_prise=1,
+            statut=Prise.Statut.PRISE,
+        )
+        boite = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament, quantite_initiale=10, quantite_restante=10
+        )
+
+        self.client.force_authenticate(self.medecin)
+        response = self.client.patch(f"/api/v1/horaires-programmes/{horaire.id}/", {"quantite": "2"})
+        self.assertEqual(response.status_code, 200)
+
+        future.refresh_from_db()
+        passee.refresh_from_db()
+        deja_prise.refresh_from_db()
+        self.assertEqual(future.quantite_prevue, 2)
+        # Historique et prise attendue déjà échue : ancienne posologie conservée.
+        self.assertEqual(passee.quantite_prevue, 1)
+        self.assertEqual(deja_prise.quantite_prevue, 1)
+        self.assertEqual(deja_prise.quantite_prise, 1)
+
+        confirmer_prises_automatiques(maintenant=maintenant + datetime.timedelta(hours=1, minutes=1))
+        boite.refresh_from_db()
+        # passee (1) + future (2) confirmées automatiquement.
+        self.assertEqual(boite.quantite_restante, 10 - 3)

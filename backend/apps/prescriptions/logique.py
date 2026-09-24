@@ -77,3 +77,34 @@ def confirmer_prises_automatiques(maintenant=None) -> list[Prise]:
         prise.save()
         confirmees.append(prise)
     return confirmees
+
+
+def synchroniser_quantite_prises_attendues(horaire, maintenant=None) -> int:
+    """
+    Reporte la quantité actuelle d'un HoraireProgramme sur ses Prise
+    encore ATTENDUE et à venir.
+
+    Les prises attendues sont générées à l'avance (generer_prises_attendues)
+    avec quantite_prevue = horaire.quantite au moment de la génération, et
+    la génération ne réécrit jamais une prise existante. Sans cette
+    synchronisation, modifier la quantité d'un horaire laissait l'ancienne
+    valeur sur les prises déjà générées — que la confirmation (automatique
+    ou manuelle) recopie ensuite dans quantite_prise, d'où un décompte de
+    stock erroné.
+
+    Seules les prises futures sont concernées : une prise attendue dont
+    l'heure est déjà passée relevait de l'ancienne posologie, et les prises
+    déjà effectuées/oubliées/reportées constituent l'historique, jamais
+    réécrit. .update() en masse volontaire : une prise ATTENDUE n'a aucun
+    mouvement de stock, le signal post_save n'a donc rien à recalculer.
+    """
+    maintenant = maintenant or timezone.now()
+    return (
+        Prise.objects.filter(
+            horaire_programme=horaire,
+            statut=Prise.Statut.ATTENDUE,
+            date_heure_prevue__gte=maintenant,
+        )
+        .exclude(quantite_prevue=horaire.quantite)
+        .update(quantite_prevue=horaire.quantite)
+    )

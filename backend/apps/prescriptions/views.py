@@ -8,7 +8,7 @@ from apps.patients.permissions import medecin_suit_patient
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
 from apps.utilisateurs.permissions import EstAdminOuMedecin
 
-from .logique import calculer_alerte_depassement
+from .logique import calculer_alerte_depassement, synchroniser_quantite_prises_attendues
 from .models import HoraireProgramme, Prescription, Prise
 from .permissions import PeutAccederALaPrescription, PeutAccederALaPrise
 from .serializers import HoraireProgrammeSerializer, PrescriptionSerializer, PriseSerializer
@@ -167,6 +167,10 @@ class HoraireProgrammeViewSet(viewsets.ModelViewSet):
                 "Vous ne pouvez ajouter un horaire que sur vos propres prescriptions."
             )
         serializer.save()
+
+    def perform_update(self, serializer):
+        horaire = serializer.save()
+        synchroniser_quantite_prises_attendues(horaire)
 
 
 class PriseViewSet(viewsets.ModelViewSet):
