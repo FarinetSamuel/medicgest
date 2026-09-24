@@ -109,22 +109,39 @@ export function PrescriptionCard({
 
           {prescription.type_prise === "reguliere" && (
             <>
-              <label className="flex items-start gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  disabled={!peutModifierPrescription}
-                  checked={prescription.confirmation_automatique}
-                  onChange={(e) => changerConfirmationAutomatique(e.target.checked)}
-                />
-                <span>
-                  Confirmer automatiquement les prises programmées
-                  <span className="block text-xs text-[var(--muted)] mt-0.5">
-                    Chaque prise passe à « Prise » dès son heure prévue atteinte, sans action manuelle. Sinon,
-                    elle reste « Attendue » jusqu'à confirmation.
+              {peutModifierPrescription ? (
+                <label className="flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5"
+                    checked={prescription.confirmation_automatique}
+                    onChange={(e) => changerConfirmationAutomatique(e.target.checked)}
+                  />
+                  <span>
+                    Confirmer automatiquement les prises programmées
+                    <span className="block text-xs text-[var(--muted)] mt-0.5">
+                      Chaque prise passe à « Prise » dès son heure prévue atteinte, sans action manuelle. Sinon,
+                      elle reste « Attendue » jusqu'à confirmation.
+                    </span>
                   </span>
-                </span>
-              </label>
+                </label>
+              ) : (
+                // Lecture seule pour un patient (comme le statut de la prescription,
+                // voir plus bas) : pas de case à cocher désactivée, qui donnerait
+                // l'impression trompeuse d'un contrôle interactif bloqué.
+                <p className="text-sm">
+                  Confirmation automatique des prises :{" "}
+                  <span className="font-medium">
+                    {prescription.confirmation_automatique ? "activée" : "désactivée"}
+                  </span>
+                  <span className="block text-xs text-[var(--muted)] mt-0.5">
+                    {prescription.confirmation_automatique
+                      ? "Chaque prise passe à « Prise » dès son heure prévue atteinte, sans action manuelle."
+                      : "Chaque prise reste « Attendue » jusqu'à confirmation manuelle."}{" "}
+                    Réglage modifiable par votre médecin.
+                  </span>
+                </p>
+              )}
 
               <HorairesSection
                 prescriptionId={prescription.id}
