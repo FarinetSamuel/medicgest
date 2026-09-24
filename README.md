@@ -179,6 +179,13 @@ idempotente comme `import_bdpm`.
   ```
   Exécutée automatiquement chaque jour à 2h (heure de Paris) (voir
   [Automatisation des tâches (cron)](#automatisation-des-tâches-cron)).
+- Chaque prescription régulière porte un champ `confirmation_automatique`
+  (booléen, **activé par défaut**) : si activé, une prise programmée dont
+  l'heure prévue est atteinte est automatiquement basculée au statut
+  `prise` (voir `confirmer_prises_automatiques`, exécutée automatiquement
+  toutes les 15 minutes) ; si désactivé, elle reste `attendue` jusqu'à une
+  confirmation manuelle — elle n'est jamais basculée automatiquement en
+  `oubliée`.
 - Chaque prise enregistrée avec le statut `prise` **décrémente
   automatiquement** le stock (boîtes actives, épuisement de la boîte qui
   périme le plus tôt en premier). Un patient peut librement corriger ou
@@ -211,7 +218,7 @@ python manage.py verifier_alertes_stock --delai-relance-heures 24
 
 ## Automatisation des tâches (cron)
 
-Trois commandes de management doivent tourner en continu pour que le suivi
+Quatre commandes de management doivent tourner en continu pour que le suivi
 des prises, les rappels et les alertes de stock restent à jour. Avec Docker,
 le conteneur `backend` s'en charge automatiquement (code dans
 `backend/cron/`) — rien à configurer manuellement :
@@ -220,6 +227,7 @@ le conteneur `backend` s'en charge automatiquement (code dans
 |---|---|
 | `generer_prises_attendues --jours 30` | Tous les jours à 2h (heure de Paris) |
 | `envoyer_rappels_prises --fenetre-minutes 15` | Toutes les 15 minutes |
+| `confirmer_prises_automatiques` | Toutes les 15 minutes |
 | `verifier_alertes_stock --delai-relance-heures 24` | Tous les jours à 3h (heure de Paris) |
 
 Détails :
@@ -235,7 +243,7 @@ Détails :
   nécessite qu'un **Redeploy** (redémarrage du conteneur), pas un rebuild.
 - Les logs des exécutions sont mêlés à ceux du serveur Django, visibles via
   `docker compose logs -f backend`.
-- Sans Docker, ces trois commandes doivent être planifiées manuellement (cron
+- Sans Docker, ces quatre commandes doivent être planifiées manuellement (cron
   système, tâche planifiée, etc.) en pointant vers le même environnement
   Python que le serveur applicatif.
 

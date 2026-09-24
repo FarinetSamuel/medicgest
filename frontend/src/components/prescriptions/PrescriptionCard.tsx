@@ -45,6 +45,18 @@ export function PrescriptionCard({
     }
   }
 
+  async function changerConfirmationAutomatique(confirmation_automatique: boolean) {
+    try {
+      const { data } = await api.patch<Prescription>(`/prescriptions/${prescription.id}/`, {
+        confirmation_automatique,
+      });
+      onModifiee(data);
+      toast.success("Préférence mise à jour");
+    } catch {
+      toast.error("Impossible de mettre à jour la préférence");
+    }
+  }
+
   async function supprimer() {
     try {
       await api.delete(`/prescriptions/${prescription.id}/`);
@@ -96,13 +108,32 @@ export function PrescriptionCard({
           )}
 
           {prescription.type_prise === "reguliere" && (
-            <HorairesSection
-              prescriptionId={prescription.id}
-              horaires={prescription.horaires}
-              peutModifier={peutGererHoraires}
-              onHoraireAjoute={ajouterHoraire}
-              onHoraireModifie={modifierHoraire}
-            />
+            <>
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  disabled={!peutModifierPrescription}
+                  checked={prescription.confirmation_automatique}
+                  onChange={(e) => changerConfirmationAutomatique(e.target.checked)}
+                />
+                <span>
+                  Confirmer automatiquement les prises programmées
+                  <span className="block text-xs text-[var(--muted)] mt-0.5">
+                    Chaque prise passe à « Prise » dès son heure prévue atteinte, sans action manuelle. Sinon,
+                    elle reste « Attendue » jusqu'à confirmation.
+                  </span>
+                </span>
+              </label>
+
+              <HorairesSection
+                prescriptionId={prescription.id}
+                horaires={prescription.horaires}
+                peutModifier={peutGererHoraires}
+                onHoraireAjoute={ajouterHoraire}
+                onHoraireModifie={modifierHoraire}
+              />
+            </>
           )}
 
           <PrisesSection

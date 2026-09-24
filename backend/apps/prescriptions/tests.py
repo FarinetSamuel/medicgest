@@ -8,7 +8,7 @@ from apps.medicaments.models import Medicament
 from apps.patients.models import Patient, PatientMedecin
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT, Utilisateur
 
-from .logique import calculer_alerte_depassement
+from .logique import calculer_alerte_depassement, confirmer_prises_automatiques
 from .models import HoraireProgramme, Prescription, Prise
 
 
@@ -192,3 +192,128 @@ class GenererPrisesAttenduesCommandTest(TestCase):
             Prise.objects.filter(prescription=self.prescription).count(),
             6,
         )
+
+
+class ConfirmerPrisesAutomatiquesTest(TestCase):
+    """
+    Décision validée : confirmation_automatique (par défaut activée) fait
+    basculer une prise 'attendue' en 'prise' dès que son heure prévue est
+    atteinte ; désactivée, la prise reste 'attendue' indéfiniment (jamais
+    de bascule automatique en 'oubliée').
+    """
+
+    def setUp(self):
+        self.medecin = creer_utilisateur_avec_role("medecin4@example.com", ROLE_MEDECIN)
+        user_patient = creer_utilisateur_avec_role("patient4@example.com", ROLE_PATIENT)
+        self.patient = Patient.objects.create(
+            utilisateur=user_patient,
+            numero_dossier="DOS-PRESC-4",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.FEMININ,
+        )
+        self.medicament = Medicament.objects.create(code_cis="4", denomination="EFFERALGAN")
+        self.maintenant = timezone.now()
+
+    def _creer_prescription(self, confirmation_automatique):
+        return Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=timezone.localdate() - datetime.timedelta(days=1),
+            confirmation_automatique=confirmation_automatique,
+        )
+
+    def test_confirmation_automatique_activee_par_defaut(self):
+        prescription = self._creer_prescription(confirmation_automatique=True)
+        self.assertTrue(prescription.confirmation_automatique)
+
+    def test_bascule_en_prise_une_fois_l_heure_atteinte(self):
+        prescription = self._creer_prescription(confirmation_automatique=True)
+        prise = Prise.objects.create(
+            prescription=prescription,
+            date_heure_prevue=self.maintenant - datetime.timedelta(minutes=1),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+
+        confirmees = confirmer_prises_automatiques(maintenant=self.maintenant)
+
+        prise.refresh_from_db()
+        self.assertEqual([p.pk for p in confirmees], [prise.pk])
+        self.assertEqual(prise.statut, Prise.Statut.PRISE)
+        self.assertEqual(prise.quantite_prise, 1)
+        self.assertEqual(prise.date_heure_reelle, prise.date_heure_prevue)
+
+    def test_ne_touche_pas_une_prise_dont_l_heure_n_est_pas_encore_atteinte(self):
+        prescription = self._creer_prescription(confirmation_automatique=True)
+        prise = Prise.objects.create(
+            prescription=prescription,
+            date_heure_prevue=self.maintenant + datetime.timedelta(minutes=30),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+
+        confirmees = confirmer_prises_automatiques(maintenant=self.maintenant)
+
+        prise.refresh_from_db()
+        self.assertEqual(confirmees, [])
+        self.assertEqual(prise.statut, Prise.Statut.ATTENDUE)
+
+    def test_ne_touche_pas_une_prescription_avec_confirmation_manuelle(self):
+        prescription = self._creer_prescription(confirmation_automatique=False)
+        prise = Prise.objects.create(
+            prescription=prescription,
+            date_heure_prevue=self.maintenant - datetime.timedelta(minutes=1),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+
+        confirmees = confirmer_prises_automatiques(maintenant=self.maintenant)
+
+        prise.refresh_from_db()
+        self.assertEqual(confirmees, [])
+        self.assertEqual(prise.statut, Prise.Statut.ATTENDUE)
+
+    def test_decompte_le_stock_seulement_a_la_confirmation_pas_a_la_generation(self):
+        from apps.stock.models import Boite
+
+        prescription = self._creer_prescription(confirmation_automatique=True)
+        Boite.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            quantite_initiale=10,
+            quantite_restante=10,
+        )
+        prise = Prise.objects.create(
+            prescription=prescription,
+            date_heure_prevue=self.maintenant - datetime.timedelta(minutes=1),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+        # Génération à l'avance (statut ATTENDUE) : pas de décompte.
+        self.assertEqual(Boite.objects.get().quantite_restante, 10)
+
+        confirmer_prises_automatiques(maintenant=self.maintenant)
+
+        prise.refresh_from_db()
+        self.assertEqual(prise.statut, Prise.Statut.PRISE)
+        self.assertEqual(Boite.objects.get().quantite_restante, 9)
+
+    def test_commande_de_management_confirme_les_prises_dues(self):
+        from django.core.management import call_command
+
+        prescription = self._creer_prescription(confirmation_automatique=True)
+        prise = Prise.objects.create(
+            prescription=prescription,
+            date_heure_prevue=self.maintenant - datetime.timedelta(minutes=1),
+            quantite_prevue=1,
+            statut=Prise.Statut.ATTENDUE,
+        )
+
+        call_command("confirmer_prises_automatiques")
+
+        prise.refresh_from_db()
+        self.assertEqual(prise.statut, Prise.Statut.PRISE)

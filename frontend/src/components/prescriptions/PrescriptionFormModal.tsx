@@ -46,6 +46,7 @@ export function PrescriptionFormModal({
   const [doseQuantite, setDoseQuantite] = useState("");
   const [doseUnite, setDoseUnite] = useState("");
   const [frequenceParJour, setFrequenceParJour] = useState("");
+  const [confirmationAutomatique, setConfirmationAutomatique] = useState(true);
   const [doseMaxParJour, setDoseMaxParJour] = useState("");
   const [dateDebut, setDateDebut] = useState(new Date().toISOString().slice(0, 10));
   const [dateFin, setDateFin] = useState("");
@@ -99,6 +100,7 @@ export function PrescriptionFormModal({
       };
       if (typePrise === "reguliere") {
         if (frequenceParJour) payload.frequence_par_jour = Number(frequenceParJour);
+        payload.confirmation_automatique = confirmationAutomatique;
       } else {
         if (doseMaxParJour) payload.dose_max_par_jour = doseMaxParJour;
       }
@@ -242,18 +244,35 @@ export function PrescriptionFormModal({
         </div>
 
         {typePrise === "reguliere" ? (
-          <div>
-            <label className="block text-sm font-medium mb-1.5">Prises par jour (facultatif)</label>
-            <input
-              type="number"
-              min="1"
-              value={frequenceParJour}
-              onChange={(e) => setFrequenceParJour(e.target.value)}
-              className={champClasse}
-            />
-            <p className="text-xs text-[var(--muted)] mt-1">
-              Les horaires précis se règlent après création de la prescription.
-            </p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Prises par jour (facultatif)</label>
+              <input
+                type="number"
+                min="1"
+                value={frequenceParJour}
+                onChange={(e) => setFrequenceParJour(e.target.value)}
+                className={champClasse}
+              />
+              <p className="text-xs text-[var(--muted)] mt-1">
+                Les horaires précis se règlent après création de la prescription.
+              </p>
+            </div>
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={confirmationAutomatique}
+                onChange={(e) => setConfirmationAutomatique(e.target.checked)}
+              />
+              <span>
+                Confirmer automatiquement les prises programmées
+                <span className="block text-xs text-[var(--muted)] mt-0.5">
+                  Activé par défaut : chaque prise passe à « Prise » dès son heure prévue atteinte, sans action
+                  manuelle. Désactivez pour confirmer chaque prise vous-même.
+                </span>
+              </span>
+            </label>
           </div>
         ) : (
           <div>

@@ -6,6 +6,12 @@ CRON_TZ=Europe/Paris
 # Rappels de prise à venir : toutes les 15 minutes
 */15 * * * * /app/cron/run_task.sh envoyer_rappels_prises --fenetre-minutes 15 >> /var/log/cron/cron.log 2>&1
 
+# Confirmation automatique des prises programmées dont l'heure est atteinte
+# (prescriptions régulières avec confirmation_automatique=True) : toutes les
+# 15 minutes, après les rappels ci-dessus pour laisser une chance à une
+# confirmation manuelle préalable dans l'intervalle.
+*/15 * * * * /app/cron/run_task.sh confirmer_prises_automatiques >> /var/log/cron/cron.log 2>&1
+
 # Génération des prises attendues (prescriptions régulières) : une fois par jour, heure creuse
 0 2 * * * /app/cron/run_task.sh generer_prises_attendues --jours 30 >> /var/log/cron/cron.log 2>&1
 

@@ -28,6 +28,7 @@ class PrescriptionSerializer(serializers.ModelSerializer):
             "dose_quantite",
             "dose_unite",
             "frequence_par_jour",
+            "confirmation_automatique",
             "dose_max_par_jour",
             "date_debut",
             "date_fin",

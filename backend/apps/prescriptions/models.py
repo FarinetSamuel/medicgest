@@ -46,6 +46,17 @@ class Prescription(models.Model):
         blank=True,
         help_text="Nombre de prises par jour (prescriptions régulières).",
     )
+    confirmation_automatique = models.BooleanField(
+        default=True,
+        help_text=(
+            "Prescriptions régulières uniquement. Si activé (par défaut), chaque prise "
+            "programmée (générée à l'avance par generer_prises_attendues) est automatiquement "
+            "marquée 'prise' dès que son heure prévue est atteinte, sans confirmation manuelle "
+            "(voir la commande confirmer_prises_automatiques). Si désactivé, elle reste "
+            "'attendue' jusqu'à une action manuelle du patient/médecin — elle n'est jamais "
+            "basculée automatiquement en 'oubliée'."
+        ),
+    )
     dose_max_par_jour = models.DecimalField(
         max_digits=6,
         decimal_places=2,

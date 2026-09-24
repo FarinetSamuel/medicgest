@@ -108,6 +108,10 @@ export interface Prescription {
   dose_quantite: string;
   dose_unite: string;
   frequence_par_jour: number | null;
+  /** Prescriptions régulières uniquement : si vrai (défaut), une prise
+   * programmée est automatiquement marquée "prise" dès son heure prévue
+   * atteinte ; sinon elle reste "attendue" jusqu'à confirmation manuelle. */
+  confirmation_automatique: boolean;
   dose_max_par_jour: string | null;
   date_debut: string;
   date_fin: string | null;

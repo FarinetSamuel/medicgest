@@ -10,8 +10,16 @@ class HoraireProgrammeInline(admin.TabularInline):
 
 @admin.register(Prescription)
 class PrescriptionAdmin(admin.ModelAdmin):
-    list_display = ("patient", "medicament", "type_prise", "statut", "date_debut", "date_fin")
-    list_filter = ("type_prise", "statut")
+    list_display = (
+        "patient",
+        "medicament",
+        "type_prise",
+        "statut",
+        "confirmation_automatique",
+        "date_debut",
+        "date_fin",
+    )
+    list_filter = ("type_prise", "statut", "confirmation_automatique")
     search_fields = ("patient__numero_dossier", "medicament__denomination")
     inlines = [HoraireProgrammeInline]
 
