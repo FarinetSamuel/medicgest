@@ -1,6 +1,8 @@
 from rest_framework import viewsets
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import DjangoModelPermissions, IsAuthenticated
+from rest_framework.response import Response
 
 from apps.patients.permissions import medecin_suit_patient
 from apps.utilisateurs.models import ROLE_ADMIN, ROLE_MEDECIN, ROLE_PATIENT
@@ -85,6 +87,39 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
                     {"medecin_prescripteur": "Ce champ est requis lorsqu'un administrateur crée la prescription."}
                 )
             serializer.save()
+
+    @action(detail=True, methods=["patch"], url_path="confirmation-automatique")
+    def confirmation_automatique(self, request, pk=None):
+        """
+        Action dédiée plutôt qu'un PATCH générique sur la prescription : la
+        prescription reste en lecture seule pour le patient (voir
+        PeutAccederALaPrescription), mais ce réglage précis lui appartient
+        au même titre que la création/suppression de sa propre
+        prescription — donc ouvert à un patient qui détient la permission
+        Django add_prescription (accordée via un Group dans l'admin), sans
+        lui donner accès au reste des champs cliniques (dose, médicament,
+        statut...). get_queryset() applique déjà le bon périmètre par rôle
+        (admin : tout, médecin : patients suivis, patient : lui-même).
+        """
+        prescription = self.get_queryset().filter(pk=pk).first()
+        if prescription is None:
+            raise NotFound("Prescription introuvable.")
+
+        user = request.user
+        if user.role == ROLE_PATIENT and not user.has_perm("prescriptions.add_prescription"):
+            raise PermissionDenied(
+                "Vous n'avez pas la permission de modifier ce réglage."
+            )
+
+        valeur = request.data.get("confirmation_automatique")
+        if not isinstance(valeur, bool):
+            raise ValidationError(
+                {"confirmation_automatique": "Doit être un booléen (true/false)."}
+            )
+
+        prescription.confirmation_automatique = valeur
+        prescription.save(update_fields=["confirmation_automatique"])
+        return Response(PrescriptionSerializer(prescription).data)
 
 
 class HoraireProgrammeViewSet(viewsets.ModelViewSet):

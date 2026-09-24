@@ -18,6 +18,7 @@ const STATUTS: Record<Prescription["statut"], { label: string; ton: "danger" | "
 export function PrescriptionCard({
   prescription,
   peutModifierPrescription,
+  peutModifierConfirmationAutomatique,
   peutGererHoraires,
   peutModifierPrises,
   peutSupprimer,
@@ -26,6 +27,7 @@ export function PrescriptionCard({
 }: {
   prescription: Prescription;
   peutModifierPrescription: boolean;
+  peutModifierConfirmationAutomatique: boolean;
   peutGererHoraires: boolean;
   peutModifierPrises: boolean;
   peutSupprimer: boolean;
@@ -47,9 +49,14 @@ export function PrescriptionCard({
 
   async function changerConfirmationAutomatique(confirmation_automatique: boolean) {
     try {
-      const { data } = await api.patch<Prescription>(`/prescriptions/${prescription.id}/`, {
-        confirmation_automatique,
-      });
+      // Action dédiée (pas le PATCH générique de la prescription) : c'est
+      // elle qui autorise un patient disposant de la permission
+      // add_prescription à changer ce réglage, sans lui ouvrir le reste
+      // des champs cliniques (voir PrescriptionViewSet.confirmation_automatique).
+      const { data } = await api.patch<Prescription>(
+        `/prescriptions/${prescription.id}/confirmation-automatique/`,
+        { confirmation_automatique }
+      );
       onModifiee(data);
       toast.success("Préférence mise à jour");
     } catch {
@@ -109,7 +116,7 @@ export function PrescriptionCard({
 
           {prescription.type_prise === "reguliere" && (
             <>
-              {peutModifierPrescription ? (
+              {peutModifierConfirmationAutomatique ? (
                 <label className="flex items-start gap-2 text-sm">
                   <input
                     type="checkbox"
@@ -126,9 +133,10 @@ export function PrescriptionCard({
                   </span>
                 </label>
               ) : (
-                // Lecture seule pour un patient (comme le statut de la prescription,
-                // voir plus bas) : pas de case à cocher désactivée, qui donnerait
-                // l'impression trompeuse d'un contrôle interactif bloqué.
+                // Lecture seule (comme le statut de la prescription, voir plus bas)
+                // pour un patient sans la permission add_prescription : pas de case
+                // à cocher désactivée, qui donnerait l'impression trompeuse d'un
+                // contrôle interactif bloqué.
                 <p className="text-sm">
                   Confirmation automatique des prises :{" "}
                   <span className="font-medium">

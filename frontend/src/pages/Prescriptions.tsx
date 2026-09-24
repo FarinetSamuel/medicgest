@@ -123,6 +123,16 @@ export function Prescriptions() {
     role === "admin" ||
     role === "medecin" ||
     (role === "patient" && permissions.includes("prescriptions.add_prescription"));
+  // Confirmation automatique des prises programmées : même permission que
+  // la création/suppression (add_prescription) — un patient qui peut gérer
+  // sa propre prescription doit pouvoir choisir ce réglage, via l'action
+  // dédiée /prescriptions/<id>/confirmation-automatique/ (voir
+  // PrescriptionViewSet.confirmation_automatique), sans obtenir un accès
+  // en écriture générique à la prescription.
+  const peutModifierConfirmationAutomatique =
+    role === "admin" ||
+    role === "medecin" ||
+    (role === "patient" && permissions.includes("prescriptions.add_prescription"));
 
   return (
     <div className="space-y-4">
@@ -232,6 +242,7 @@ export function Prescriptions() {
                   key={p.id}
                   prescription={p}
                   peutModifierPrescription={peutModifierPrescription}
+                  peutModifierConfirmationAutomatique={peutModifierConfirmationAutomatique}
                   peutGererHoraires={peutGererHoraires}
                   peutModifierPrises={peutModifierPrises}
                   peutSupprimer={peutSupprimer}

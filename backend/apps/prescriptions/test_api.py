@@ -332,6 +332,135 @@ class PrescriptionAPITest(APITestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTrue(Prescription.objects.filter(id=prescription.id).exists())
 
+    def test_patient_sans_permission_django_ne_peut_pas_modifier_la_confirmation_automatique(self):
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/confirmation-automatique/",
+            {"confirmation_automatique": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+        prescription.refresh_from_db()
+        self.assertTrue(prescription.confirmation_automatique)
+
+    def test_patient_avec_permission_django_peut_modifier_la_confirmation_automatique(self):
+        """
+        Même permission Django add_prescription que pour la création/
+        suppression : un patient qui peut gérer sa propre prescription
+        doit pouvoir choisir si ses prises programmées sont confirmées
+        automatiquement, sans pour autant obtenir un accès en écriture
+        générique à la prescription (voir test_patient_voit_ses_
+        prescriptions_en_lecture_seule).
+        """
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/confirmation-automatique/",
+            {"confirmation_automatique": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["confirmation_automatique"])
+        prescription.refresh_from_db()
+        self.assertFalse(prescription.confirmation_automatique)
+
+        # Le reste de la prescription reste inaccessible en écriture via
+        # cette même permission (l'action ne touche qu'à ce champ précis).
+        response_patch_generique = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/", {"dose_quantite": "5.00"}
+        )
+        self.assertEqual(response_patch_generique.status_code, 403)
+
+    def test_patient_avec_permission_django_ne_peut_pas_modifier_la_confirmation_dun_autre_patient(self):
+        autre_user_patient = creer_utilisateur_avec_role("patapi4@example.com", ROLE_PATIENT)
+        autre_patient = Patient.objects.create(
+            utilisateur=autre_user_patient,
+            numero_dossier="DOS-API-PRESC-4",
+            date_naissance=datetime.date(1980, 1, 1),
+            sexe=Patient.Sexe.MASCULIN,
+        )
+        prescription = Prescription.objects.create(
+            patient=autre_patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/confirmation-automatique/",
+            {"confirmation_automatique": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 404)
+        prescription.refresh_from_db()
+        self.assertTrue(prescription.confirmation_automatique)
+
+    def test_medecin_suiveur_peut_modifier_la_confirmation_automatique(self):
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.medecin_suiveur)
+        response = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/confirmation-automatique/",
+            {"confirmation_automatique": False},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["confirmation_automatique"])
+
+    def test_valeur_non_booleenne_refusee(self):
+        self.user_patient.user_permissions.add(
+            Permission.objects.get(content_type__app_label="prescriptions", codename="add_prescription")
+        )
+        prescription = Prescription.objects.create(
+            patient=self.patient,
+            medicament=self.medicament,
+            medecin_prescripteur=self.medecin_suiveur,
+            type_prise=Prescription.TypePrise.REGULIERE,
+            dose_quantite=1,
+            dose_unite="comprimé",
+            date_debut=datetime.date(2026, 1, 1),
+        )
+        self.client.force_authenticate(self.user_patient)
+        response = self.client.patch(
+            f"/api/v1/prescriptions/{prescription.id}/confirmation-automatique/",
+            {"confirmation_automatique": "pas un booléen"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+
     def test_medicament_source_reflete_le_pays_du_referentiel(self):
         """
         Le frontend filtre l'affichage des prescriptions par pays (BDPM
