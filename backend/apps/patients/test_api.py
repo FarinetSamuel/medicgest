@@ -338,7 +338,7 @@ class PatientMedecinAPIPermissionsTest(APITestCase):
         self.client.force_authenticate(self.user_patient)
         response = self.client.get("/api/v1/suivis-medecin/")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual([r["patient"] for r in response.data["results"]], [str(self.patient.id)])
+        self.assertEqual([r["patient"] for r in response.json()["results"]], [str(self.patient.id)])
 
     def test_patient_ne_peut_pas_creer_un_suivi(self):
         self.client.force_authenticate(self.user_patient)
