@@ -13,9 +13,16 @@ class Boite(models.Model):
 
     Décision validée : un patient peut avoir plusieurs boîtes actives du
     même médicament en même temps (ex. stock d'avance). Le décompte
-    automatique consomme les boîtes en FEFO (First-Expired-First-Out :
-    la boîte dont la péremption est la plus proche est utilisée en
-    premier — plus sûr médicalement qu'un simple FIFO par date d'achat).
+    automatique termine d'abord la boîte déjà ouverte, puis entame les
+    boîtes neuves en FEFO (First-Expired-First-Out : la boîte dont la
+    péremption est la plus proche est utilisée en premier — plus sûr
+    médicalement qu'un simple FIFO par date d'achat). Voir
+    logique.boites_dans_ordre_de_consommation.
+
+    Les alertes (quantité comme jours) ne portent que sur la dernière
+    boîte à consommer : une boîte entamée sous son seuil ne déclenche rien
+    tant qu'une autre boîte active prendra le relais. Les seuils à
+    renseigner sont donc ceux de la boîte la plus récente.
     """
 
     class Statut(models.TextChoices):
@@ -64,14 +71,37 @@ class Boite(models.Model):
     # --- Alertes ---
 
     @property
+    def est_derniere_boite(self) -> bool:
+        """
+        Vrai si aucune autre boîte active non vide de ce médicament ne sera
+        consommée après celle-ci. Pour une boîte épuisée ou périmée : vrai
+        seulement s'il ne reste plus aucune boîte active non vide (stock
+        réellement à zéro — l'alerte doit alors rester visible).
+        """
+        from .logique import boites_dans_ordre_de_consommation
+
+        ordre = list(
+            boites_dans_ordre_de_consommation(self.patient, self.medicament).values_list(
+                "pk", flat=True
+            )
+        )
+        if self.pk in ordre:
+            return ordre[-1] == self.pk
+        return not ordre
+
+    @property
     def en_alerte_quantite(self) -> bool:
         if self.seuil_alerte_quantite is None:
             return False
-        return self.quantite_restante <= self.seuil_alerte_quantite
+        if self.quantite_restante > self.seuil_alerte_quantite:
+            return False
+        return self.est_derniere_boite
 
     @property
     def en_alerte_jours(self) -> bool:
         if self.seuil_alerte_jours is None:
+            return False
+        if not self.est_derniere_boite:
             return False
         from .logique import jours_restants_estimes
 

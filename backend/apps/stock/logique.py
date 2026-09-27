@@ -6,7 +6,7 @@ facilement et indépendante des vues/signaux qui l'appellent.
 import datetime
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import F, Sum
 from django.utils import timezone
 
 FENETRE_CONSOMMATION_JOURS = 14
@@ -58,6 +58,28 @@ def jours_restants_estimes(patient, medicament):
     return stock_total / conso
 
 
+def boites_dans_ordre_de_consommation(patient, medicament):
+    """
+    Boîtes actives non vides de ce patient/médicament, dans l'ordre où le
+    décompte automatique les consomme : d'abord la ou les boîtes déjà
+    ouvertes (la plus anciennement ouverte en premier) — on termine la
+    boîte entamée avant d'en ouvrir une autre —, puis les boîtes neuves en
+    FEFO (péremption la plus proche d'abord, sans date en dernier).
+    """
+    from .models import Boite
+
+    return Boite.objects.filter(
+        patient=patient,
+        medicament=medicament,
+        statut=Boite.Statut.ACTIVE,
+        quantite_restante__gt=0,
+    ).order_by(
+        F("date_ouverture").asc(nulls_last=True),
+        F("date_peremption").asc(nulls_last=True),
+        "date_creation",
+    )
+
+
 def appliquer_mouvement_stock(prise) -> None:
     """
     Recalcule entièrement l'effet d'une Prise sur le stock : annule
@@ -78,21 +100,21 @@ def appliquer_mouvement_stock(prise) -> None:
     medicament = prise.prescription.medicament
     a_decompter = prise.quantite_prise
 
-    boites = Boite.objects.filter(
-        patient=patient,
-        medicament=medicament,
-        statut=Boite.Statut.ACTIVE,
-        quantite_restante__gt=0,
-    ).order_by("date_peremption", "date_creation")
+    # Date d'ouverture renseignée automatiquement au premier décompte
+    # d'une boîte (jour de la prise). Jamais effacée si le décompte est
+    # annulé ensuite : elle peut avoir été saisie à la main.
+    jour_prise = timezone.localdate(prise.date_heure_reelle or timezone.now())
 
-    for boite in boites:
+    for boite in boites_dans_ordre_de_consommation(patient, medicament):
         if a_decompter <= 0:
             break
         pris_sur_cette_boite = min(boite.quantite_restante, a_decompter)
         boite.quantite_restante -= pris_sur_cette_boite
         if boite.quantite_restante <= 0:
             boite.statut = Boite.Statut.EPUISEE
-        boite.save(update_fields=["quantite_restante", "statut"])
+        if boite.date_ouverture is None:
+            boite.date_ouverture = jour_prise
+        boite.save(update_fields=["quantite_restante", "statut", "date_ouverture"])
 
         MouvementStock.objects.create(
             boite=boite,

@@ -163,6 +163,19 @@ class AlertesStockNotificationTest(TestCase):
         deuxieme_appel = generer_alertes_stock(delai_relance_heures=24)
         self.assertEqual(len(deuxieme_appel), 0)
 
+    def test_une_seule_alerte_pour_deux_boites_du_meme_medicament(self):
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=2, seuil_alerte_quantite=5,
+            date_ouverture=datetime.date(2026, 1, 1),
+        )
+        Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10, seuil_alerte_quantite=5,
+        )
+        # La boîte entamée est sous son seuil, mais la suivante prend le relais.
+        self.assertEqual(len(generer_alertes_stock()), 0)
+
     def test_plusieurs_boites_regroupees_dans_un_seul_email(self):
         medicament2 = Medicament.objects.create(code_cis="NOTIF2B", denomination="NOTIFOL2B")
         Boite.objects.create(

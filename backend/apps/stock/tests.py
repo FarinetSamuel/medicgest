@@ -108,6 +108,59 @@ class DecompteAutomatiqueStockTest(TestCase):
         self.assertEqual(boite_1.statut, Boite.Statut.EPUISEE)
         self.assertEqual(boite_2.quantite_restante, Decimal("7"))
 
+    def test_termine_la_boite_ouverte_avant_d_entamer_une_boite_qui_perime_plus_tot(self):
+        boite_ouverte = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=6,
+            date_ouverture=datetime.date(2026, 1, 1),
+            date_peremption=datetime.date(2027, 1, 1),
+        )
+        boite_neuve = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10,
+            date_peremption=datetime.date(2026, 6, 1),
+        )
+        Prise.objects.create(
+            prescription=self.prescription,
+            date_heure_reelle=timezone.make_aware(datetime.datetime(2026, 1, 5, 10, 0)),
+            quantite_prise=8,
+            statut=Prise.Statut.PRISE,
+        )
+        boite_ouverte.refresh_from_db()
+        boite_neuve.refresh_from_db()
+        self.assertEqual(boite_ouverte.quantite_restante, Decimal("0"))
+        self.assertEqual(boite_ouverte.statut, Boite.Statut.EPUISEE)
+        self.assertEqual(boite_neuve.quantite_restante, Decimal("8"))
+
+    def test_date_ouverture_renseignee_au_premier_decompte(self):
+        boite = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10,
+        )
+        Prise.objects.create(
+            prescription=self.prescription,
+            date_heure_reelle=timezone.make_aware(datetime.datetime(2026, 1, 5, 10, 0)),
+            quantite_prise=1,
+            statut=Prise.Statut.PRISE,
+        )
+        boite.refresh_from_db()
+        self.assertEqual(boite.date_ouverture, datetime.date(2026, 1, 5))
+
+    def test_date_ouverture_existante_non_ecrasee(self):
+        boite = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10,
+            date_ouverture=datetime.date(2025, 12, 20),
+        )
+        Prise.objects.create(
+            prescription=self.prescription,
+            date_heure_reelle=timezone.make_aware(datetime.datetime(2026, 1, 5, 10, 0)),
+            quantite_prise=1,
+            statut=Prise.Statut.PRISE,
+        )
+        boite.refresh_from_db()
+        self.assertEqual(boite.date_ouverture, datetime.date(2025, 12, 20))
+
     def test_suppression_de_la_prise_annule_le_decompte(self):
         boite = Boite.objects.create(
             patient=self.patient, medicament=self.medicament,
@@ -227,6 +280,69 @@ class AlerteStockTest(TestCase):
             quantite_initiale=10, quantite_restante=1,
         )
         self.assertFalse(boite.en_alerte)
+
+    def test_pas_d_alerte_sur_la_boite_entamee_si_une_autre_prend_le_relais(self):
+        boite_entamee = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=2, seuil_alerte_quantite=5,
+            date_ouverture=datetime.date(2026, 1, 1),
+        )
+        boite_suivante = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10, seuil_alerte_quantite=5,
+        )
+        self.assertFalse(boite_entamee.en_alerte)
+        self.assertFalse(boite_suivante.en_alerte)
+
+    def test_alerte_sur_la_derniere_boite_sous_son_seuil(self):
+        boite_epuisee = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=0, seuil_alerte_quantite=5,
+            statut=Boite.Statut.EPUISEE,
+        )
+        derniere = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=4, seuil_alerte_quantite=5,
+            date_ouverture=datetime.date(2026, 1, 1),
+        )
+        self.assertTrue(derniere.en_alerte_quantite)
+        # L'ancienne boîte épuisée ne double pas l'alerte tant qu'il reste du stock.
+        self.assertFalse(boite_epuisee.en_alerte)
+
+    def test_boite_epuisee_en_alerte_quand_plus_aucun_stock(self):
+        boite = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=0, seuil_alerte_quantite=5,
+            statut=Boite.Statut.EPUISEE,
+        )
+        self.assertTrue(boite.en_alerte_quantite)
+
+    def test_alerte_jours_uniquement_sur_la_derniere_boite(self):
+        premiere = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=500, quantite_restante=500, seuil_alerte_jours=990,
+            date_peremption=datetime.date(2026, 6, 1),
+        )
+        derniere = Boite.objects.create(
+            patient=self.patient, medicament=self.medicament,
+            quantite_initiale=10, quantite_restante=10, seuil_alerte_jours=990,
+            date_peremption=datetime.date(2027, 1, 1),
+        )
+        maintenant = timezone.now()
+        for i in range(14):
+            Prise.objects.create(
+                prescription=self.prescription,
+                date_heure_reelle=maintenant - datetime.timedelta(days=i),
+                quantite_prise=1,
+                statut=Prise.Statut.PRISE,
+            )
+        premiere.refresh_from_db()
+        derniere.refresh_from_db()
+        # 486 + 10 = 496 jours à 1/jour, sous le seuil de 990 : une seule
+        # alerte, portée par la boîte qui sera consommée en dernier.
+        self.assertEqual(premiere.quantite_restante, Decimal("486"))
+        self.assertFalse(premiere.en_alerte_jours)
+        self.assertTrue(derniere.en_alerte_jours)
 
     def test_consommation_moyenne_par_jour(self):
         maintenant = timezone.now()
