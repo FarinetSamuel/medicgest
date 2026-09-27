@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { AlertTriangle, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, PackagePlus, Pencil, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import { StatusBadge } from "../StatusBadge";
 import { MouvementsSection } from "./MouvementsSection";
@@ -16,11 +16,13 @@ export function BoiteCard({
   boite,
   peutModifier,
   onModifier,
+  onReapprovisionner,
   onSupprimee,
 }: {
   boite: Boite;
   peutModifier: boolean;
   onModifier: () => void;
+  onReapprovisionner: () => void;
   onSupprimee: (id: string) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
@@ -56,6 +58,7 @@ export function BoiteCard({
           <p className="text-sm text-[var(--muted)] mt-0.5">
             {boite.quantite_restante} / {boite.quantite_initiale}
             {boite.jours_restants_estimes !== null && ` · ~${boite.jours_restants_estimes} j restants`}
+            {boite.date_ouverture && ` · ouverte le ${new Date(boite.date_ouverture).toLocaleDateString("fr-FR")}`}
             {boite.date_peremption && ` · péremption ${new Date(boite.date_peremption).toLocaleDateString("fr-FR")}`}
           </p>
           <div className="mt-1.5 h-1.5 w-full max-w-xs rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
@@ -74,6 +77,12 @@ export function BoiteCard({
 
           {peutModifier && (
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--hairline)]">
+              <button
+                onClick={onReapprovisionner}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent)] hover:underline"
+              >
+                <PackagePlus size={13} /> Réapprovisionner
+              </button>
               <button
                 onClick={onModifier}
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--accent)] hover:underline"

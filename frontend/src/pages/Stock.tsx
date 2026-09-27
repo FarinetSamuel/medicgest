@@ -23,6 +23,7 @@ export function Stock() {
   const [chargementBoites, setChargementBoites] = useState(false);
   const [modalCreation, setModalCreation] = useState(false);
   const [boiteEnEdition, setBoiteEnEdition] = useState<Boite | null>(null);
+  const [boiteAReapprovisionner, setBoiteAReapprovisionner] = useState<Boite | null>(null);
 
   useEffect(() => {
     if (role === "patient") return;
@@ -209,6 +210,7 @@ export function Stock() {
                   boite={b}
                   peutModifier={peutModifier}
                   onModifier={() => setBoiteEnEdition(b)}
+                  onReapprovisionner={() => setBoiteAReapprovisionner(b)}
                   onSupprimee={retirerBoite}
                 />
               ))}
@@ -221,7 +223,17 @@ export function Stock() {
         <BoiteFormModal
           patientId={patientSelectionneId === "moi" ? (utilisateur?.patient_id ?? "") : patientSelectionneId}
           boite={null}
+          boitesExistantes={boites}
           onFermer={() => setModalCreation(false)}
+          onSauvegarde={ajouterBoite}
+        />
+      )}
+      {boiteAReapprovisionner && (
+        <BoiteFormModal
+          patientId={boiteAReapprovisionner.patient}
+          boite={null}
+          modele={boiteAReapprovisionner}
+          onFermer={() => setBoiteAReapprovisionner(null)}
           onSauvegarde={ajouterBoite}
         />
       )}
