@@ -154,6 +154,7 @@ export function PrescriptionCard({
               <HorairesSection
                 prescriptionId={prescription.id}
                 horaires={prescription.horaires}
+                doseQuantiteDefaut={prescription.dose_quantite}
                 peutModifier={peutGererHoraires}
                 onHoraireAjoute={ajouterHoraire}
                 onHoraireModifie={modifierHoraire}

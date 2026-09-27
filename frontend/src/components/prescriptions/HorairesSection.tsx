@@ -8,19 +8,24 @@ import type { HoraireProgramme } from "../../types";
 export function HorairesSection({
   prescriptionId,
   horaires,
+  doseQuantiteDefaut,
   peutModifier,
   onHoraireAjoute,
   onHoraireModifie,
 }: {
   prescriptionId: string;
   horaires: HoraireProgramme[];
+  doseQuantiteDefaut: string;
   peutModifier: boolean;
   onHoraireAjoute: (horaire: HoraireProgramme) => void;
   onHoraireModifie: (horaire: HoraireProgramme) => void;
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [heure, setHeure] = useState("08:00");
-  const [quantite, setQuantite] = useState("1");
+  // Pré-rempli avec la dose de la prescription : c'est la quantité de
+  // l'horaire (et non dose_quantite) qui est recopiée dans les prises
+  // générées, donc décomptée du stock et affichée dans les rappels.
+  const [quantite, setQuantite] = useState(String(Number(doseQuantiteDefaut)));
   const [enCours, setEnCours] = useState(false);
 
   const [horaireEnEdition, setHoraireEnEdition] = useState<string | null>(null);
