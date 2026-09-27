@@ -6,9 +6,10 @@ vérification des interactions médicamenteuses et export des données pour les
 professionnels de santé.
 
 > **Statut** : projet en développement actif — Paliers 1 (socle), 2 (suivi
-> des prises), 3 (stock) et 4 (notifications) terminés et testés (90 tests
-> automatisés). Palier 5 (interactions médicamenteuses) à venir. Voir
-> [`docs/`](./docs) et la feuille de route ci-dessous pour le détail.
+> des prises), 3 (stock), 4 (notifications) et 5 (interactions
+> médicamenteuses) terminés, ainsi que les exports PDF/Excel du palier 6
+> (226 tests automatisés côté backend). Le frontend React (palier 6) est
+> en cours. Voir la feuille de route ci-dessous pour le détail.
 
 ## ⚠️ Avertissement — À lire avant toute utilisation
 
@@ -20,8 +21,7 @@ l'état.
 - **Aucune garantie n'est fournie**, explicite ou implicite, quant à
   l'exactitude, la fiabilité ou l'exhaustivité des informations produites par
   l'application (y compris les alertes de stock, les rappels de prise, les
-  calculs de dosage ou toute future vérification d'interactions
-  médicamenteuses).
+  calculs de dosage ou la vérification d'interactions médicamenteuses).
 - **L'utilisation se fait entièrement aux risques et périls de
   l'utilisateur.** En cas de bug, d'erreur d'affichage, de calcul incorrect
   ou de dysfonctionnement, ni les auteurs ni les contributeurs du projet ne
@@ -39,8 +39,8 @@ l'état.
   non-garantie standard ("AS IS").
 
 Cette limitation de responsabilité s'applique à l'ensemble du logiciel,
-présent et futur, y compris les modules de vérification d'interactions
-médicamenteuses qui seront ajoutés ultérieurement.
+présent et futur, y compris le module de vérification d'interactions
+médicamenteuses.
 
 ## Fonctionnalités visées
 
@@ -64,28 +64,38 @@ médicamenteuses qui seront ajoutés ultérieurement.
 |---|---|
 | Backend | Python / Django + Django REST Framework |
 | Base de données | PostgreSQL |
-| Frontend | React + TypeScript (à partir du palier 6) |
+| Frontend | React + TypeScript + Vite (palier 6, en cours) |
 | Tâches planifiées | Cron (dans le conteneur `backend`, voir `backend/cron/`) |
 | Conteneurisation | Docker / docker-compose |
 
 ## Prérequis
 
 - [Docker](https://docs.docker.com/get-docker/) et Docker Compose
-- Ou, pour un développement sans Docker : Python 3.12+, PostgreSQL 16+
+- Ou, pour un développement sans Docker : Python 3.12+, PostgreSQL 16+ et
+  Node.js (frontend)
 
 ## Installation et lancement en local
 
 ### Avec Docker (recommandé)
 
 ```bash
-git clone https://github.com/<votre-organisation>/gestion-medicaments.git
-cd gestion-medicaments
+git clone https://github.com/FarinetSamuel/medicgest.git
+cd medicgest
 cp .env.example .env        # puis adapter les valeurs si besoin
 docker compose up --build
 ```
 
-L'API est ensuite disponible sur `http://localhost:8000` (adaptez le port si
-vous l'avez modifié dans `docker-compose.yml`).
+Avec la configuration fournie (`docker-compose.yml`) :
+
+- l'API est disponible sur `http://localhost:8077` (port 8000 du conteneur) ;
+- le frontend est disponible sur `http://localhost:8078`.
+
+Dans `.env`, adaptez alors `VITE_API_BASE_URL` (ex.
+`http://localhost:8077/api/v1`) et `CORS_ALLOWED_ORIGINS` (ex.
+`http://localhost:8078`) : sans origine CORS explicitement autorisée, l'API
+refuse toutes les requêtes du navigateur. `VITE_API_BASE_URL` est figée au
+moment du build du frontend — toute modification impose de reconstruire
+l'image `frontend`.
 
 Pour appliquer les migrations et créer un compte administrateur :
 
@@ -108,11 +118,23 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
+Frontend (serveur de développement Vite, port 5173) :
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
 ### Lancer les tests
 
 ```bash
-python manage.py test
+cd backend
+python manage.py test                 # tous les tests
+python manage.py test apps.stock      # une seule app
 ```
+
+PostgreSQL est requis, y compris pour les tests (pas de SQLite).
 
 ## Import du référentiel médicaments (BDPM)
 
@@ -167,11 +189,26 @@ idempotente comme `import_bdpm`.
 > explicitement plutôt que d'afficher silencieusement « aucune interaction
 > détectée ». Voir la docstring de la commande pour le détail complet.
 
+Chaque patient est rattaché à un seul référentiel (`referentiel_medicaments` :
+France/BDPM ou Suisse/Swissmedic) ; ses prescriptions et ses boîtes ne
+peuvent référencer que des médicaments de ce référentiel.
+
 ## Fonctionnement du suivi des prises et du stock (paliers 2 et 3)
+
+### Prescriptions et prises
 
 - Chaque **prescription** est soit **régulière** (horaires fixes, via
   `HoraireProgramme`) soit **réserve** (usage ponctuel, avec un plafond
-  journalier optionnel).
+  journalier optionnel ; un dépassement déclenche une alerte mais n'est
+  jamais bloqué).
+- Pour une prescription régulière, **c'est la quantité de chaque horaire**
+  (et non la dose générale de la prescription) qui est recopiée dans les
+  prises générées, puis décomptée du stock et affichée dans les rappels.
+  Dans l'interface, le champ « Quantité » d'un nouvel horaire est pré-rempli
+  avec la dose de la prescription ; il reste modifiable pour permettre des
+  quantités différentes selon l'horaire (ex. 2 le matin, 1 le soir).
+  Modifier la quantité d'un horaire met à jour les prises attendues à venir
+  (jamais l'historique déjà enregistré).
 - Pour les prescriptions régulières, les prises attendues des prochains
   jours sont **générées à l'avance** :
   ```bash
@@ -186,14 +223,38 @@ idempotente comme `import_bdpm`.
   toutes les 15 minutes) ; si désactivé, elle reste `attendue` jusqu'à une
   confirmation manuelle — elle n'est jamais basculée automatiquement en
   `oubliée`.
+
+### Stock : plusieurs boîtes du même médicament
+
+- Un patient peut détenir plusieurs boîtes actives d'un même médicament.
 - Chaque prise enregistrée avec le statut `prise` **décrémente
-  automatiquement** le stock (boîtes actives, épuisement de la boîte qui
-  périme le plus tôt en premier). Un patient peut librement corriger ou
-  supprimer une prise déjà enregistrée : le stock est réajusté en
-  conséquence.
-- Le stock déclenche une alerte (`en_alerte`) sur un seuil de quantité
-  restante et/ou sur un nombre de jours restants estimé à partir de la
-  consommation réelle récente.
+  automatiquement** le stock, boîte par boîte : la boîte **déjà ouverte**
+  est terminée en premier, puis les boîtes neuves sont entamées en
+  commençant par celle qui **périme le plus tôt** (FEFO). Une prise qui
+  dépasse le contenu d'une boîte se poursuit sur la suivante.
+- La **date d'ouverture** d'une boîte est renseignée automatiquement lors
+  de son premier décompte (elle reste modifiable à la main).
+- Un patient peut librement corriger ou supprimer une prise déjà
+  enregistrée : le stock est réajusté en conséquence.
+
+### Alertes de stock
+
+- Chaque boîte peut porter un seuil de quantité restante et/ou un seuil en
+  nombre de jours restants, estimé à partir de la consommation réelle des
+  14 derniers jours (toutes boîtes actives du médicament confondues).
+- **L'alerte ne porte que sur la dernière boîte à consommer** : une boîte
+  entamée qui passe sous son seuil ne déclenche rien tant qu'une autre
+  boîte prendra le relais, et un même médicament ne génère qu'une alerte
+  (pas une par boîte). Si toutes les boîtes sont épuisées, l'alerte reste
+  affichée.
+- Ce sont donc **les seuils de la boîte la plus récente** qui comptent :
+  le bouton **« Réapprovisionner »** d'une boîte, comme le choix d'un
+  médicament déjà en stock dans « Nouvelle boîte », pré-remplit la
+  quantité initiale, le délai de réapprovisionnement et les seuils d'après
+  la dernière boîte de ce médicament. Une boîte ajoutée sans seuils
+  n'alerte pas.
+- Le destinataire des alertes de stock (patient, médecin suiveur, ou les
+  deux) est réglable par patient (`preference_alerte_stock`).
 
 ## Notifications (palier 4)
 
@@ -201,7 +262,7 @@ Trois canaux, à des degrés de maturité différents :
 
 | Canal | État |
 |---|---|
-| **E-mail** | Fonctionnel. Backend "console" en développement (les e-mails s'affichent dans les logs) ; à remplacer par un vrai SMTP en production. |
+| **E-mail** | Fonctionnel. Backend "console" par défaut (les e-mails s'affichent dans les logs). Envoi SMTP réel configurable soit dans `.env` (`EMAIL_BACKEND`, `EMAIL_HOST`...), soit depuis l'admin Django (« Configuration e-mail »), sans redéploiement. Les rappels et alertes sont regroupés en un seul e-mail par destinataire. |
 | **In-app** | Fonctionnel. Consultable via `/api/v1/notifications/`, marquable comme lue (`PATCH` avec `statut: "lue"`). |
 | **SMS** | Interface prête mais **désactivée** (`SMS_BACKEND_ACTIVE=False`) : aucun fournisseur (Twilio, OVHcloud SMS...) n'est configuré, faute de compte payant. Une notification SMS est explicitement marquée en échec plutôt que faussement "envoyée" — voir `apps/notifications/canaux.py` pour le point d'extension. |
 
@@ -315,20 +376,32 @@ GET /api/v1/patients/<id>/export-excel/
 Générés respectivement avec **WeasyPrint** (HTML → PDF) et **openpyxl**
 (classeur à 4 feuilles). L'avertissement sur la fraîcheur des données
 d'interactions (Thésaurus ANSM figé depuis sept. 2023) est repris dans le
-PDF, pas seulement dans l'API.
+PDF, pas seulement dans l'API. Ces exports sont pour l'instant accessibles
+via l'API uniquement (pas encore de bouton dans le frontend).
+
+## Frontend (palier 6, en cours)
+
+Application React + TypeScript (Vite) dans `frontend/`, connectée à l'API
+par jeton JWT (rafraîchi automatiquement). Pages disponibles : connexion,
+tableau de bord, patients (fiche, notes médicales, médecins suiveurs,
+préférence d'alerte de stock), prescriptions (horaires, prises), stock
+(boîtes, mouvements, réapprovisionnement), notifications, interactions et
+gestion des comptes. Thème clair/sombre mémorisé dans le navigateur.
 
 ## Exemples d'utilisation
 
-- **Administrateur** : se connecte via `/admin`, crée les comptes, importe le
-  référentiel médicaments, supervise l'ensemble des patients.
+- **Administrateur** : crée les comptes (frontend ou `/admin`), importe le
+  référentiel médicaments, configure l'envoi des e-mails, supervise
+  l'ensemble des patients.
 - **Médecin** : crée un patient (devient automatiquement son médecin
   suiveur), rédige ses prescriptions, consulte le journal de consommation et
   le stock des patients qu'il suit.
 - **Patient** : consulte son propre dossier et ses prescriptions, enregistre
   librement ses prises et gère son propre stock de boîtes.
 
-L'API est consultable et utilisable directement via l'interface navigable de
-Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
+L'application s'utilise depuis le frontend ; l'API reste aussi consultable
+directement via l'interface navigable de Django REST Framework
+(`/api/v1/...`).
 
 ## Feuille de route (paliers)
 
@@ -337,9 +410,7 @@ Django REST Framework (`/api/v1/...`), en attendant le frontend du palier 6.
 3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
 4. ✅ Terminé — Notifications : e-mail et in-app fonctionnels ; SMS en attente d'un fournisseur
 5. ✅ Terminé — Vérification des interactions médicamenteuses (Thésaurus ANSM, figé depuis sept. 2023 — voir avertissement ci-dessus)
-6. 🔶 En cours — Exports PDF/Excel ✅ terminés ; frontend React, tableau de bord et thème clair/sombre à venir
-
-Le détail de chaque palier est documenté dans [`docs/`](./docs).
+6. 🔶 En cours — Exports PDF/Excel ✅ terminés (API) ; frontend React en cours : tableau de bord, thème clair/sombre et pages par domaine disponibles, boutons d'export à venir
 
 ## Contribuer
 
