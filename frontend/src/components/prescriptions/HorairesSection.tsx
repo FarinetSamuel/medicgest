@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Pencil, Plus } from "lucide-react";
+import { AlertTriangle, Pencil, Plus } from "lucide-react";
 import { api } from "../../lib/api";
 import { champClasse } from "../../lib/ui";
 import type { HoraireProgramme } from "../../types";
@@ -216,6 +216,19 @@ export function HorairesSection({
                 >
                   {h.heure.slice(0, 5)} · {h.quantite}
                 </button>
+                {/* C'est la quantité de l'horaire (et non la dose de la
+                    prescription) qui est recopiée dans les prises : rappels
+                    et décompte du stock. Un écart est signalé, jamais corrigé
+                    automatiquement — il peut être voulu (ex. 2 le matin, 1 le soir). */}
+                {Number(h.quantite) !== Number(doseQuantiteDefaut) && (
+                  <span
+                    title={`Quantité de l'horaire (${Number(h.quantite)}) différente de la dose prescrite (${Number(doseQuantiteDefaut)}) : c'est ${Number(h.quantite)} qui sera rappelé et décompté du stock.`}
+                    aria-label="Quantité différente de la dose prescrite"
+                    className="text-[var(--statut-rupture)]"
+                  >
+                    <AlertTriangle size={12} />
+                  </span>
+                )}
                 {peutModifier && (
                   <button
                     onClick={() => commencerEdition(h)}

@@ -754,6 +754,28 @@ class HoraireProgrammeAPITest(APITestCase):
         # passee (1) + future (2) confirmées automatiquement.
         self.assertEqual(boite.quantite_restante, 10 - 3)
 
+    def test_modifier_la_quantite_hors_api_met_a_jour_les_prises_attendues_futures(self):
+        """
+        Régression : la synchronisation n'était appelée que depuis la vue
+        API. Une quantité modifiée via l'admin Django (inline « Horaires »,
+        simple save() du modèle) laissait 1 sur les prises déjà générées :
+        rappel « 1 unité » et 1 seule unité décomptée du stock alors que la
+        posologie était de 2.
+        """
+        horaire = HoraireProgramme.objects.create(prescription=self.prescription, heure="08:00", quantite=1)
+        future = Prise.objects.create(
+            prescription=self.prescription,
+            horaire_programme=horaire,
+            date_heure_prevue=timezone.now() + datetime.timedelta(hours=1),
+            quantite_prevue=1,
+        )
+
+        horaire.quantite = 2
+        horaire.save()
+
+        future.refresh_from_db()
+        self.assertEqual(future.quantite_prevue, 2)
+
 
 class ReferentielMedicamentsPatientTest(APITestCase):
     """Un patient ne reçoit que des médicaments de son référentiel."""
