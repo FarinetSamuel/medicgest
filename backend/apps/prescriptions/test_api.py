@@ -776,6 +776,46 @@ class HoraireProgrammeAPITest(APITestCase):
         future.refresh_from_db()
         self.assertEqual(future.quantite_prevue, 2)
 
+    def test_medecin_peut_definir_le_rythme_d_un_horaire(self):
+        self.client.force_authenticate(self.medecin)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {
+                "prescription": str(self.prescription.id),
+                "heure": "08:00",
+                "quantite": "1",
+                "intervalle_jours": 14,
+                "date_reference": "2026-01-05",
+            },
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["intervalle_jours"], 14)
+        self.assertEqual(response.data["date_reference"], "2026-01-05")
+
+    def test_horaire_sans_rythme_precise_est_quotidien(self):
+        self.client.force_authenticate(self.medecin)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {"prescription": str(self.prescription.id), "heure": "08:00", "quantite": "1"},
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["intervalle_jours"], 1)
+        self.assertIsNone(response.data["date_reference"])
+
+    def test_intervalle_de_zero_jour_est_refuse(self):
+        self.client.force_authenticate(self.medecin)
+        response = self.client.post(
+            "/api/v1/horaires-programmes/",
+            {
+                "prescription": str(self.prescription.id),
+                "heure": "08:00",
+                "quantite": "1",
+                "intervalle_jours": 0,
+            },
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("intervalle_jours", response.data)
+
 
 class ReferentielMedicamentsPatientTest(APITestCase):
     """Un patient ne reçoit que des médicaments de son référentiel."""

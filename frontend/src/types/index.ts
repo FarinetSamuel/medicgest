@@ -74,6 +74,10 @@ export interface HoraireProgramme {
   prescription: string;
   heure: string;
   quantite: string;
+  /** 1 = tous les jours, 2 = tous les 2 jours, 7 = toutes les semaines... */
+  intervalle_jours: number;
+  /** Jour de la première prise (AAAA-MM-JJ) ; null = date de début de la prescription. */
+  date_reference: string | null;
   actif: boolean;
 }
 

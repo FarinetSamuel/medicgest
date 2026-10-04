@@ -193,6 +193,83 @@ class GenererPrisesAttenduesCommandTest(TestCase):
             6,
         )
 
+    def test_horaire_tous_les_2_jours_ne_genere_qu_un_jour_sur_deux(self):
+        from django.core.management import call_command
+
+        self.prescription.horaires.all().delete()
+        horaire = HoraireProgramme.objects.create(
+            prescription=self.prescription, heure="08:00", quantite=1, intervalle_jours=2
+        )
+
+        call_command("generer_prises_attendues", jours=7)
+        # date_reference vide : compté depuis date_debut (aujourd'hui) → J, J+2, J+4, J+6
+        aujourdhui = timezone.localdate()
+        jours = sorted(
+            timezone.localtime(p.date_heure_prevue).date()
+            for p in Prise.objects.filter(horaire_programme=horaire)
+        )
+        self.assertEqual(jours, [aujourdhui + datetime.timedelta(days=i) for i in (0, 2, 4, 6)])
+
+    def test_horaire_hebdomadaire_part_de_la_date_de_reference(self):
+        from django.core.management import call_command
+
+        self.prescription.horaires.all().delete()
+        aujourdhui = timezone.localdate()
+        horaire = HoraireProgramme.objects.create(
+            prescription=self.prescription,
+            heure="08:00",
+            quantite=1,
+            intervalle_jours=7,
+            date_reference=aujourdhui + datetime.timedelta(days=3),
+        )
+
+        call_command("generer_prises_attendues", jours=21)
+        # Rien avant la date de référence, puis une prise tous les 7 jours.
+        jours = sorted(
+            timezone.localtime(p.date_heure_prevue).date()
+            for p in Prise.objects.filter(horaire_programme=horaire)
+        )
+        self.assertEqual(jours, [aujourdhui + datetime.timedelta(days=i) for i in (3, 10, 17)])
+
+    def test_changer_le_rythme_supprime_les_prises_attendues_hors_rythme(self):
+        """
+        Les prises étant générées à l'avance, un horaire quotidien passé à
+        « tous les 2 jours » ne doit pas garder ses prises quotidiennes déjà
+        générées (rappels et décompte de stock les jours sans prise).
+        """
+        from django.core.management import call_command
+
+        self.prescription.horaires.all().delete()
+        aujourdhui = timezone.localdate()
+        horaire = HoraireProgramme.objects.create(
+            prescription=self.prescription, heure="08:00", quantite=1
+        )
+        call_command("generer_prises_attendues", jours=7)
+        # Une prise déjà effectuée un jour hors du futur rythme : historique conservé.
+        effectuee = Prise.objects.get(
+            horaire_programme=horaire,
+            date_heure_prevue__date=aujourdhui + datetime.timedelta(days=3),
+        )
+        effectuee.statut = Prise.Statut.PRISE
+        effectuee.save()
+
+        horaire.intervalle_jours = 2
+        horaire.date_reference = aujourdhui + datetime.timedelta(days=2)
+        horaire.save()
+
+        restantes_a_venir = sorted(
+            timezone.localtime(p.date_heure_prevue).date()
+            for p in Prise.objects.filter(
+                horaire_programme=horaire,
+                statut=Prise.Statut.ATTENDUE,
+                date_heure_prevue__gte=timezone.now(),
+            )
+        )
+        self.assertEqual(
+            restantes_a_venir, [aujourdhui + datetime.timedelta(days=i) for i in (2, 4, 6)]
+        )
+        self.assertTrue(Prise.objects.filter(pk=effectuee.pk).exists())
+
 
 class ConfirmerPrisesAutomatiquesTest(TestCase):
     """

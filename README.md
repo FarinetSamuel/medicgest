@@ -209,6 +209,13 @@ peuvent référencer que des médicaments de ce référentiel.
   quantités différentes selon l'horaire (ex. 2 le matin, 1 le soir).
   Modifier la quantité d'un horaire met à jour les prises attendues à venir
   (jamais l'historique déjà enregistré).
+- Chaque horaire a son **rythme** : tous les jours (par défaut), tous les
+  N jours ou toutes les N semaines (`intervalle_jours`, compté à partir de
+  `date_reference`, le jour de la première prise ; à défaut, la date de
+  début de la prescription). Modifier le rythme supprime les prises
+  attendues à venir qui ne tombent plus sur un jour prévu (jamais
+  l'historique) ; les nouveaux jours prévus apparaissent à la prochaine
+  génération des prises attendues.
 - Pour les prescriptions régulières, les prises attendues des prochains
   jours sont **générées à l'avance** :
   ```bash

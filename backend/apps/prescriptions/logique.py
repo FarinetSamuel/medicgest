@@ -108,3 +108,38 @@ def synchroniser_quantite_prises_attendues(horaire, maintenant=None) -> int:
         .exclude(quantite_prevue=horaire.quantite)
         .update(quantite_prevue=horaire.quantite)
     )
+
+
+def supprimer_prises_attendues_hors_rythme(horaire, maintenant=None) -> int:
+    """
+    Supprime les Prise encore ATTENDUE et à venir d'un HoraireProgramme qui
+    ne tombent plus sur un jour prévu par son rythme (intervalle_jours /
+    date_reference).
+
+    Les prises attendues étant générées à l'avance sur une fenêtre de
+    plusieurs jours, passer un horaire de « tous les jours » à « tous les
+    2 jours » laisserait sinon les prises quotidiennes déjà générées :
+    rappels envoyés et, avec la confirmation automatique, stock décompté
+    les jours où rien ne doit être pris.
+
+    Seules les prises futures au statut ATTENDUE sont concernées : les
+    prises effectuées/oubliées/reportées et les prises attendues déjà
+    échues constituent l'historique, jamais réécrit. Les jours
+    nouvellement prévus par le rythme sont créés par la prochaine
+    exécution de generer_prises_attendues.
+    """
+    maintenant = maintenant or timezone.now()
+    a_venir = Prise.objects.filter(
+        horaire_programme=horaire,
+        statut=Prise.Statut.ATTENDUE,
+        date_heure_prevue__gte=maintenant,
+    )
+    hors_rythme = [
+        prise.pk
+        for prise in a_venir
+        if not horaire.est_prevu_le(timezone.localtime(prise.date_heure_prevue).date())
+    ]
+    if not hors_rythme:
+        return 0
+    Prise.objects.filter(pk__in=hors_rythme).delete()
+    return len(hors_rythme)

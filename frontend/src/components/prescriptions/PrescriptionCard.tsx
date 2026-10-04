@@ -155,6 +155,7 @@ export function PrescriptionCard({
                 prescriptionId={prescription.id}
                 horaires={prescription.horaires}
                 doseQuantiteDefaut={prescription.dose_quantite}
+                dateDebut={prescription.date_debut}
                 peutModifier={peutGererHoraires}
                 onHoraireAjoute={ajouterHoraire}
                 onHoraireModifie={modifierHoraire}

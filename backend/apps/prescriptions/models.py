@@ -1,6 +1,7 @@
 import uuid
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from apps.medicaments.models import Medicament
@@ -85,6 +86,12 @@ class HoraireProgramme(models.Model):
     """
     Horaire fixe d'une prescription régulière (ex. : 08:00, 20:00).
     Sert de patron pour générer les Prise attendues à l'avance.
+
+    Rythme : par défaut l'horaire s'applique tous les jours
+    (intervalle_jours=1). Un intervalle supérieur espace les prises d'autant
+    de jours (2 = un jour sur deux, 7 = toutes les semaines, 14 = toutes
+    les 2 semaines...), comptés à partir de date_reference — voir
+    est_prevu_le().
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -93,6 +100,22 @@ class HoraireProgramme(models.Model):
     )
     heure = models.TimeField()
     quantite = models.DecimalField(max_digits=6, decimal_places=2)
+    intervalle_jours = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(365)],
+        help_text=(
+            "Nombre de jours entre deux prises à cet horaire : 1 = tous les jours, "
+            "2 = tous les 2 jours, 7 = toutes les semaines, 14 = toutes les 2 semaines."
+        ),
+    )
+    date_reference = models.DateField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Jour de la première prise à cet horaire ; les suivantes en sont déduites "
+            "par pas de intervalle_jours. Vide = date de début de la prescription."
+        ),
+    )
     actif = models.BooleanField(default=True)
 
     class Meta:
@@ -102,6 +125,19 @@ class HoraireProgramme(models.Model):
 
     def __str__(self):
         return f"{self.prescription} à {self.heure}"
+
+    def est_prevu_le(self, jour) -> bool:
+        """
+        Vrai si une prise est prévue à cet horaire le jour donné, d'après
+        le rythme (intervalle_jours compté depuis date_reference, ou depuis
+        la date de début de la prescription si elle n'est pas renseignée).
+        Ne tient pas compte des bornes date_debut/date_fin de la
+        prescription, contrôlées par l'appelant.
+        """
+        ancre = self.date_reference or self.prescription.date_debut
+        if jour < ancre:
+            return False
+        return (jour - ancre).days % self.intervalle_jours == 0
 
 
 class Prise(models.Model):

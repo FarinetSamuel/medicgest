@@ -50,6 +50,9 @@ class Command(BaseCommand):
                     continue
                 if prescription.date_fin and jour > prescription.date_fin:
                     continue
+                # Rythme de l'horaire (tous les N jours / N semaines).
+                if not horaire.est_prevu_le(jour):
+                    continue
 
                 date_heure_prevue = timezone.make_aware(
                     datetime.datetime.combine(jour, horaire.heure)

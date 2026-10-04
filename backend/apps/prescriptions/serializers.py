@@ -6,7 +6,15 @@ from .models import HoraireProgramme, Prescription, Prise
 class HoraireProgrammeSerializer(serializers.ModelSerializer):
     class Meta:
         model = HoraireProgramme
-        fields = ["id", "prescription", "heure", "quantite", "actif"]
+        fields = [
+            "id",
+            "prescription",
+            "heure",
+            "quantite",
+            "intervalle_jours",
+            "date_reference",
+            "actif",
+        ]
         read_only_fields = ["id"]
 
 
