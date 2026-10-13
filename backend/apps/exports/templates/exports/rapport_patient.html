@@ -3,47 +3,149 @@
 <head>
 <meta charset="utf-8">
 <style>
-    @page { size: A4; margin: 2cm; @bottom-center { content: "Page " counter(page) " / " counter(pages); font-size: 9px; color: #666; } }
-    body { font-family: "Liberation Sans", Arial, sans-serif; font-size: 11px; color: #1a1a1a; }
-    h1 { font-size: 18px; border-bottom: 2px solid #2c5f8a; padding-bottom: 6px; margin-bottom: 4px; }
-    h2 { font-size: 13px; color: #2c5f8a; margin-top: 22px; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 3px; }
-    .sous-titre { color: #555; font-size: 10px; margin-bottom: 18px; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-    th { background: #eef3f7; text-align: left; padding: 5px 6px; font-size: 9.5px; border-bottom: 1px solid #ccc; }
-    td { padding: 5px 6px; font-size: 9.5px; border-bottom: 1px solid #eee; }
-    .niveau-contre_indication { color: #b00020; font-weight: bold; }
-    .niveau-association_deconseillee { color: #c26200; font-weight: bold; }
-    .niveau-precaution_emploi { color: #8a6d00; }
-    .niveau-a_prendre_en_compte { color: #555; }
-    .alerte { color: #b00020; font-weight: bold; }
-    .avertissement { background: #fff4e5; border: 1px solid #e0a94b; padding: 10px 12px; font-size: 9.5px; margin-top: 24px; }
-    .vide { color: #888; font-style: italic; }
-    h3 { font-size: 11px; margin-top: 14px; margin-bottom: 4px; }
+    /* Charte graphique Medicgest (design_handoff_medicgest_branding/README.md),
+       tokens du mode clair. IBM Plex n'est utilisé que s'il est installé dans
+       l'image ; sinon Liberation (fonts-liberation, voir Dockerfile). */
+    :root {
+        --ink: #10171c;
+        --ink-2: #3c4a52;
+        --muted: #5b6a72;
+        --hairline: #e3e8ea;
+        --hairline-soft: #eef2f3;
+        --border-strong: #d6dee1;
+        --accent: #17707f;
+        --statut-conforme: #2f7d5b;
+        --statut-attention: #b07d1f;
+        --statut-rupture: #a33a34;
+        --sans: "IBM Plex Sans", "Liberation Sans", Arial, sans-serif;
+        --mono: "IBM Plex Mono", "Liberation Mono", monospace;
+    }
+    @page {
+        size: A4;
+        margin: 16mm 16mm 20mm 16mm;
+        @bottom-left { content: string(reference); font-family: "IBM Plex Mono", "Liberation Mono", monospace; font-size: 7.5pt; color: #5b6a72; }
+        @bottom-right { content: "Page " counter(page) " / " counter(pages); font-family: "IBM Plex Mono", "Liberation Mono", monospace; font-size: 7.5pt; color: #5b6a72; }
+    }
+    body { font-family: var(--sans); font-size: 9.5pt; line-height: 1.45; color: var(--ink); margin: 0; }
+
+    /* En-tête : lockup du logo à gauche, nature du document à droite. */
+    .entete { width: 100%; border-collapse: collapse; margin: 0; }
+    .entete td { padding: 0; border: 0; vertical-align: middle; }
+    .entete .symbole { width: 11mm; }
+    .entete .symbole svg { display: block; width: 11mm; height: 11mm; }
+    .entete .marque { padding-left: 3mm; }
+    .wordmark { font-size: 17pt; font-weight: 600; letter-spacing: -0.035em; line-height: 1; }
+    .wordmark span { font-weight: 300; color: var(--muted); }
+    .eyebrow { font-family: var(--mono); font-size: 7pt; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+    .marque .eyebrow { letter-spacing: .3em; font-size: 6pt; margin-top: 1.5mm; }
+    .entete .nature { text-align: right; }
+    .entete .nature .date { font-family: var(--mono); font-size: 8pt; color: var(--ink-2); margin-top: 1mm; }
+    .filet { border: 0; border-top: 1px solid var(--ink); margin: 5mm 0 7mm; }
+
+    h1 { font-size: 24pt; font-weight: 300; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 1.5mm; }
+    .sous-titre { font-size: 11pt; color: var(--ink-2); margin-bottom: 5mm; }
+    .fiche { width: 100%; border-collapse: collapse; border: 1px solid var(--hairline); margin-bottom: 2mm; }
+    .fiche td { padding: 3mm 4mm; border: 0; border-right: 1px solid var(--hairline-soft); vertical-align: top; }
+    .fiche td:last-child { border-right: 0; }
+    .fiche .valeur { font-family: var(--mono); font-size: 9.5pt; margin-top: 1mm; }
+    .reference { string-set: reference "medicgest · dossier " content(); }
+
+    h2 { font-size: 13pt; font-weight: 400; letter-spacing: -0.02em; margin: 9mm 0 1mm; break-after: avoid; }
+    h2 .eyebrow { display: block; margin-bottom: 1mm; }
+    h3 { font-size: 10pt; font-weight: 600; margin: 5mm 0 0; break-after: avoid; }
+
+    table.donnees { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+    table.donnees thead { display: table-header-group; }
+    table.donnees th {
+        font-family: var(--mono); font-size: 6.5pt; font-weight: 400; letter-spacing: .12em; text-transform: uppercase;
+        color: var(--muted); text-align: left; padding: 2mm 2mm 1.5mm; border-bottom: 1px solid var(--border-strong);
+    }
+    table.donnees td { padding: 2mm; border-bottom: 1px solid var(--hairline-soft); vertical-align: top; }
+    table.donnees tr { break-inside: avoid; }
+    table.donnees th:first-child, table.donnees td:first-child { padding-left: 0; }
+    table.donnees th:last-child, table.donnees td:last-child { padding-right: 0; }
+    .nom { font-weight: 600; }
+    .donnee { font-family: var(--mono); font-size: 9pt; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .meta { font-family: var(--mono); font-size: 8pt; color: var(--muted); }
+
+    /* Statut : point de 6px toujours doublé d'un libellé, jamais de fond coloré. */
+    .point { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 1.5mm; vertical-align: middle; background: var(--muted); }
+    .point.conforme { background: var(--statut-conforme); }
+    .point.attention { background: var(--statut-attention); }
+    .point.rupture { background: var(--statut-rupture); }
+    .texte-rupture { color: var(--statut-rupture); font-weight: 600; }
+
+    .vide { color: var(--muted); margin: 2mm 0 0; }
+    .note { font-size: 8pt; color: var(--muted); margin: 2mm 0 0; }
+    .avertissement { border: 1px solid var(--border-strong); border-left: 3px solid var(--statut-attention); padding: 3.5mm 4mm; margin-top: 10mm; font-size: 8pt; color: var(--ink-2); break-inside: avoid; }
+    .avertissement .eyebrow { margin-bottom: 1.5mm; }
 </style>
 </head>
 <body>
-    <h1>{% if contenu == "prescriptions" %}Prescriptions par médecin{% elif contenu == "prises" %}Prises du patient{% elif contenu == "stock" %}Stock{% elif contenu == "a_venir" %}Prises à venir et stock{% else %}Rapport patient{% endif %} — {{ patient.utilisateur.get_full_name }}</h1>
-    <div class="sous-titre">
-        Dossier {{ patient.numero_dossier }} — généré le {{ date_generation|date:"d/m/Y à H:i" }}
-    </div>
+    <table class="entete">
+        <tr>
+            <td class="symbole">
+                <svg width="42" height="42" viewBox="0 0 76 76" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="0" y="0" width="76" height="76" rx="18" fill="#10171C"/>
+                    <rect x="32" y="18" width="12" height="40" rx="6" fill="#FFFFFF"/>
+                    <rect x="18" y="32" width="40" height="12" rx="6" fill="#17707F"/>
+                </svg>
+            </td>
+            <td class="marque">
+                <div class="wordmark">medic<span>gest</span></div>
+                <div class="eyebrow">Gestion pharmaceutique</div>
+            </td>
+            <td class="nature">
+                <div class="eyebrow">{% if contenu == "prescriptions" %}Prescriptions{% elif contenu == "prises" %}Prises effectuées{% elif contenu == "stock" %}Stock{% elif contenu == "a_venir" %}Liste de vacances{% else %}Rapport complet{% endif %}</div>
+                <div class="date">Généré le {{ date_generation|date:"d/m/Y à H:i" }}</div>
+            </td>
+        </tr>
+    </table>
+    <hr class="filet">
+
+    <h1>{% if contenu == "prescriptions" %}Prescriptions par médecin{% elif contenu == "prises" %}Prises du patient{% elif contenu == "stock" %}Stock{% elif contenu == "a_venir" %}Prises à venir et stock{% else %}Rapport patient{% endif %}</h1>
+    <div class="sous-titre">{{ patient.utilisateur.get_full_name|default:patient.utilisateur.email }}</div>
+
+    <table class="fiche">
+        <tr>
+            <td>
+                <div class="eyebrow">Dossier</div>
+                <div class="valeur reference">{{ patient.numero_dossier }}</div>
+            </td>
+            <td>
+                <div class="eyebrow">Date de naissance</div>
+                <div class="valeur">{{ patient.date_naissance|date:"d/m/Y" }}</div>
+            </td>
+            {% if contenu != "prescriptions" and contenu != "stock" %}
+            <td>
+                <div class="eyebrow">Période</div>
+                <div class="valeur">{% if periode_debut %}{{ periode_debut|date:"d/m/Y" }} – {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %}</div>
+            </td>
+            {% endif %}
+        </tr>
+    </table>
 
     {% if contenu == "prescriptions" %}
-    <h2>{% if inclure_inactives %}Prescriptions (actives, arrêtées et terminées){% else %}Prescriptions actives{% endif %}</h2>
+    <h2><span class="eyebrow">Traitements</span>{% if inclure_inactives %}Prescriptions actives, arrêtées et terminées{% else %}Prescriptions actives{% endif %}</h2>
     {% for groupe in prescriptions_par_medecin %}
     <h3>{{ groupe.medecin }}</h3>
-    <table>
-        <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Horaires</th><th>Du</th><th>Au</th><th>Statut</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Horaires</th><th>Du</th><th>Au</th><th>Statut</th></tr>
+        </thead>
+        <tbody>
         {% for p in groupe.prescriptions %}
         <tr>
-            <td>{{ p.medicament.denomination }}</td>
+            <td class="nom">{{ p.medicament.denomination }}</td>
             <td>{{ p.get_type_prise_display }}</td>
-            <td>{{ p.dose_quantite }} {{ p.dose_unite }}</td>
-            <td>{% for h in p.horaires.all %}{% if h.actif %}{{ h.heure|time:"H:i" }} : {{ h.quantite }}{% if h.intervalle_jours > 1 %} (tous les {{ h.intervalle_jours }} jours){% endif %}<br>{% endif %}{% endfor %}</td>
-            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
-            <td>{{ p.date_fin|date:"d/m/Y"|default:"—" }}</td>
-            <td>{{ p.get_statut_display }}</td>
+            <td class="donnee">{{ p.dose_quantite|floatformat:"-2" }} {{ p.dose_unite }}</td>
+            <td class="donnee">{% for h in p.horaires.all %}{% if h.actif %}{{ h.heure|time:"H:i" }} : {{ h.quantite|floatformat:"-2" }}{% if h.intervalle_jours > 1 %} (tous les {{ h.intervalle_jours }} jours){% endif %}<br>{% endif %}{% empty %}—{% endfor %}</td>
+            <td class="donnee">{{ p.date_debut|date:"d/m/Y" }}</td>
+            <td class="donnee">{{ p.date_fin|date:"d/m/Y"|default:"—" }}</td>
+            <td><span class="point {% if p.statut == "active" %}conforme{% endif %}"></span>{{ p.get_statut_display }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% empty %}
     <p class="vide">Aucune prescription ne correspond à cette sélection.</p>
@@ -51,36 +153,44 @@
     {% endif %}
 
     {% if contenu == "complet" %}
-    <h2>Prescriptions actives</h2>
+    <h2><span class="eyebrow">Traitements</span>Prescriptions actives</h2>
     {% if prescriptions_actives %}
-    <table>
-        <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Prescripteur</th><th>Depuis le</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Prescripteur</th><th>Depuis le</th></tr>
+        </thead>
+        <tbody>
         {% for p in prescriptions_actives %}
         <tr>
-            <td>{{ p.medicament.denomination }}</td>
+            <td class="nom">{{ p.medicament.denomination }}</td>
             <td>{{ p.get_type_prise_display }}</td>
-            <td>{{ p.dose_quantite }} {{ p.dose_unite }}</td>
-            <td>{{ p.medecin_prescripteur.get_full_name }}</td>
-            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
+            <td class="donnee">{{ p.dose_quantite|floatformat:"-2" }} {{ p.dose_unite }}</td>
+            <td>{{ p.medecin_prescripteur.get_full_name|default:p.medecin_prescripteur.email }}</td>
+            <td class="donnee">{{ p.date_debut|date:"d/m/Y" }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% else %}
     <p class="vide">Aucune prescription active.</p>
     {% endif %}
 
-    <h2>Interactions détectées</h2>
+    <h2><span class="eyebrow">Sécurité</span>Interactions détectées</h2>
     {% if interactions %}
-    <table>
-        <tr><th>Substance A</th><th>Substance B</th><th>Niveau</th><th>Détail</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Substance A</th><th>Substance B</th><th>Niveau</th><th>Détail</th></tr>
+        </thead>
+        <tbody>
         {% for i in interactions %}
         <tr>
-            <td>{{ i.substance_a }} ({{ i.medicament_a }})</td>
-            <td>{{ i.substance_b }} ({{ i.medicament_b }})</td>
-            <td class="niveau-{{ i.niveau }}">{{ i.niveau }}</td>
+            <td><span class="nom">{{ i.substance_a }}</span><br><span class="meta">{{ i.medicament_a }}</span></td>
+            <td><span class="nom">{{ i.substance_b }}</span><br><span class="meta">{{ i.medicament_b }}</span></td>
+            <td>{% if i.niveau == "contre_indication" %}<span class="point rupture"></span><span class="texte-rupture">Contre-indication</span>{% elif i.niveau == "association_deconseillee" %}<span class="point rupture"></span>Association déconseillée{% elif i.niveau == "precaution_emploi" %}<span class="point attention"></span>Précaution d'emploi{% elif i.niveau == "a_prendre_en_compte" %}<span class="point"></span>À prendre en compte{% else %}<span class="point"></span>{{ i.niveau }}{% endif %}</td>
             <td>{{ i.libelle|truncatewords:25 }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% else %}
     <p class="vide">Aucune interaction détectée entre les prescriptions actives.</p>
@@ -88,22 +198,26 @@
     {% endif %}
 
     {% if contenu == "a_venir" %}
-    <h2>Prises prévues du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}</h2>
+    <h2><span class="eyebrow">À emporter</span>Prises prévues du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}</h2>
     {% if besoins %}
-    <table>
-        <tr><th>Médicament</th><th>Prises prévues</th><th>Quantité nécessaire</th><th>Stock actuel</th><th>Stock estimé au début</th><th>Reste estimé à la fin</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Prises prévues</th><th>Quantité nécessaire</th><th>Stock actuel</th><th>Stock estimé au début</th><th>Reste estimé à la fin</th></tr>
+        </thead>
+        <tbody>
         {% for b in besoins %}
         <tr>
-            <td>{{ b.medicament }}</td>
-            <td>{{ b.nombre }}</td>
-            <td>{{ b.quantite }} {{ b.unite }}</td>
-            <td>{{ b.stock }}</td>
-            <td>{{ b.stock_au_debut }}</td>
-            <td>{% if b.manque %}<span class="alerte">Il manque {{ b.manque }}</span>{% else %}{{ b.reste }}{% endif %}</td>
+            <td class="nom">{{ b.medicament }}</td>
+            <td class="donnee">{{ b.nombre }}</td>
+            <td class="donnee">{{ b.quantite|floatformat:"-2" }} {{ b.unite }}</td>
+            <td class="donnee">{{ b.stock|floatformat:"-2" }}</td>
+            <td class="donnee">{{ b.stock_au_debut|floatformat:"-2" }}</td>
+            <td class="donnee">{% if b.manque %}<span class="point rupture"></span><span class="texte-rupture">Il manque {{ b.manque|floatformat:"-2" }}</span>{% else %}<span class="point conforme"></span>{{ b.reste|floatformat:"-2" }}{% endif %}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
-    <p class="vide">
+    <p class="note">
         Calcul d'après les horaires programmés des prescriptions régulières actives et les boîtes
         actives enregistrées. Le stock estimé au début déduit les prises prévues d'ici là.
     </p>
@@ -112,68 +226,84 @@
     {% endif %}
 
     {% if reserves %}
-    <h2>Médicaments de réserve (au besoin)</h2>
-    <table>
-        <tr><th>Médicament</th><th>Dose</th><th>Maximum par jour</th><th>Stock actuel</th></tr>
+    <h2><span class="eyebrow">Au besoin</span>Médicaments de réserve</h2>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Dose</th><th>Maximum par jour</th><th>Stock actuel</th></tr>
+        </thead>
+        <tbody>
         {% for r in reserves %}
         <tr>
-            <td>{{ r.prescription.medicament.denomination }}</td>
-            <td>{{ r.prescription.dose_quantite }} {{ r.prescription.dose_unite }}</td>
-            <td>{{ r.prescription.dose_max_par_jour|default_if_none:"—" }}</td>
-            <td>{{ r.stock }}</td>
+            <td class="nom">{{ r.prescription.medicament.denomination }}</td>
+            <td class="donnee">{{ r.prescription.dose_quantite|floatformat:"-2" }} {{ r.prescription.dose_unite }}</td>
+            <td class="donnee">{% if r.prescription.dose_max_par_jour is None %}—{% else %}{{ r.prescription.dose_max_par_jour|floatformat:"-2" }}{% endif %}</td>
+            <td class="donnee">{{ r.stock|floatformat:"-2" }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
-    <p class="vide">Consommation non prévisible : aucune quantité nécessaire n'est estimée pour ces médicaments.</p>
+    <p class="note">Consommation non prévisible : aucune quantité nécessaire n'est estimée pour ces médicaments.</p>
     {% endif %}
 
     {% if boites_perimees_avant_la_fin %}
-    <h2>Boîtes qui périment avant la fin de la période</h2>
-    <table>
-        <tr><th>Médicament</th><th>Restant</th><th>Péremption</th></tr>
+    <h2><span class="eyebrow">Attention</span>Boîtes qui périment avant la fin de la période</h2>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Restant</th><th>Péremption</th></tr>
+        </thead>
+        <tbody>
         {% for boite in boites_perimees_avant_la_fin %}
         <tr>
-            <td>{{ boite.medicament.denomination }}</td>
-            <td>{{ boite.quantite_restante }}</td>
-            <td class="alerte">{{ boite.date_peremption|date:"d/m/Y" }}</td>
+            <td class="nom">{{ boite.medicament.denomination }}</td>
+            <td class="donnee">{{ boite.quantite_restante|floatformat:"-2" }}</td>
+            <td class="donnee"><span class="point attention"></span>{{ boite.date_peremption|date:"d/m/Y" }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
-    <p class="vide">Ces boîtes sont comptées dans le stock ci-dessus.</p>
+    <p class="note">Ces boîtes sont comptées dans le stock ci-dessus.</p>
     {% endif %}
     {% endif %}
 
     {% if contenu == "complet" or contenu == "prises" %}
     {% if contenu == "prises" %}
-    <h2>Total par médicament ({% if periode_debut %}du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %})</h2>
+    <h2><span class="eyebrow">Synthèse</span>Total par médicament</h2>
     {% if resume_prises %}
-    <table>
-        <tr><th>Médicament</th><th>Nombre de prises</th><th>Quantité totale</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Nombre de prises</th><th>Quantité totale</th></tr>
+        </thead>
+        <tbody>
         {% for ligne in resume_prises %}
         <tr>
-            <td>{{ ligne.medicament }}</td>
-            <td>{{ ligne.nombre }}</td>
-            <td>{{ ligne.quantite }} {{ ligne.unite }}</td>
+            <td class="nom">{{ ligne.medicament }}</td>
+            <td class="donnee">{{ ligne.nombre }}</td>
+            <td class="donnee">{{ ligne.quantite|floatformat:"-2" }} {{ ligne.unite }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% else %}
     <p class="vide">Aucune prise enregistrée sur cette période.</p>
     {% endif %}
     {% endif %}
 
-    <h2>Historique des prises ({% if periode_debut %}du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %})</h2>
+    <h2><span class="eyebrow">{% if periode_debut %}Du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %}</span>Historique des prises</h2>
     {% if historique_prises %}
-    <table>
-        <tr><th>Date/heure</th><th>Médicament</th><th>Quantité</th><th>Statut</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Date et heure</th><th>Médicament</th><th>Quantité</th><th>Statut</th></tr>
+        </thead>
+        <tbody>
         {% for prise in historique_prises %}
         <tr>
-            <td>{{ prise.date_heure_reelle|date:"d/m/Y H:i" }}</td>
-            <td>{{ prise.prescription.medicament.denomination }}</td>
-            <td>{{ prise.quantite_prise }}</td>
-            <td>{{ prise.get_statut_display }}</td>
+            <td class="donnee">{{ prise.date_heure_reelle|date:"d/m/Y H:i" }}</td>
+            <td class="nom">{{ prise.prescription.medicament.denomination }}</td>
+            <td class="donnee">{{ prise.quantite_prise|floatformat:"-2" }}</td>
+            <td><span class="point conforme"></span>{{ prise.get_statut_display }}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% else %}
     <p class="vide">Aucune prise enregistrée sur cette période.</p>
@@ -181,18 +311,22 @@
     {% endif %}
 
     {% if contenu == "complet" or contenu == "stock" %}
-    <h2>Stock actuel</h2>
+    <h2><span class="eyebrow">Boîtes actives</span>Stock actuel</h2>
     {% if boites_actives %}
-    <table>
-        <tr><th>Médicament</th><th>Restant</th><th>Péremption</th><th>Alerte</th></tr>
+    <table class="donnees">
+        <thead>
+            <tr><th>Médicament</th><th>Restant</th><th>Péremption</th><th>Alerte</th></tr>
+        </thead>
+        <tbody>
         {% for boite in boites_actives %}
         <tr>
-            <td>{{ boite.medicament.denomination }}</td>
-            <td>{{ boite.quantite_restante }} / {{ boite.quantite_initiale }}</td>
-            <td>{{ boite.date_peremption|date:"d/m/Y"|default:"—" }}</td>
-            <td>{% if boite.en_alerte %}<span class="alerte">Oui</span>{% else %}Non{% endif %}</td>
+            <td class="nom">{{ boite.medicament.denomination }}</td>
+            <td class="donnee">{{ boite.quantite_restante|floatformat:"-2" }} / {{ boite.quantite_initiale|floatformat:"-2" }}</td>
+            <td class="donnee">{{ boite.date_peremption|date:"d/m/Y"|default:"—" }}</td>
+            <td>{% if boite.en_alerte %}<span class="point rupture"></span><span class="texte-rupture">Stock bas</span>{% else %}<span class="point conforme"></span>Aucune{% endif %}</td>
         </tr>
         {% endfor %}
+        </tbody>
     </table>
     {% else %}
     <p class="vide">Aucune boîte active en stock.</p>
@@ -200,7 +334,8 @@
     {% endif %}
 
     <div class="avertissement">
-        ⚠️ Ce document est généré automatiquement à partir des données saisies dans l'application
+        <div class="eyebrow">Avertissement</div>
+        Ce document est généré automatiquement à partir des données saisies dans l'application
         et n'a pas de valeur médicale certifiée. La vérification des interactions s'appuie sur le
         Thésaurus des interactions médicamenteuses de l'ANSM, dont la dernière version date du
         15/09/2023 et n'est plus mise à jour. Ce rapport ne remplace en aucun cas l'avis d'un
