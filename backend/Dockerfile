@@ -9,6 +9,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     cron tzdata \
     && (apt-get install -y --no-install-recommends libgdk-pixbuf-2.0-0 \
         || apt-get install -y --no-install-recommends libgdk-pixbuf2.0-0) \
+    # Police de la charte graphique pour les PDF d'export. Non bloquant : si le
+    # paquet est introuvable, les PDF retombent sur Liberation (voir le
+    # gabarit exports/rapport_patient.html).
+    && (apt-get install -y --no-install-recommends fonts-ibm-plex \
+        || echo "fonts-ibm-plex indisponible : PDF en Liberation") \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
