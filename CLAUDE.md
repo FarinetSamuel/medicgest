@@ -76,7 +76,7 @@ Backend on `localhost:8077`→8000, frontend on `localhost:8078`→80 (see `dock
 - `src/context/AuthContext.tsx` — holds the logged-in user (including `role`), exposes `connexion`/`deconnexion`; fetches `/auth/me/` on mount if a token is stored.
 - `src/context/ThemeContext.tsx` — light/dark theme, persisted to `localStorage`, toggled via a `dark` class on `<html>`.
 - `src/lib/api.ts` — single axios instance (`api`). Attaches the JWT access token to every request; on a 401 it transparently refreshes the token once (de-duplicated across concurrent 401s via a shared in-flight promise) and retries, or redirects to `/connexion` if refresh fails. `recupererToutesPages()` walks DRF pagination (`PAGE_SIZE=25` server-side) to fetch all pages of a list endpoint, capped at 10 pages (250 items) as a safety net rather than a real filter/search param.
-- `src/pages/` — one page per domain area (`Patients`, `Prescriptions`, `Stock`, `Notifications`, `Interactions`, `Comptes`), mirroring the backend apps. `src/components/<domaine>/` holds the domain-specific components used by each page; `src/components/{Layout,Modal,RouteProtegee,StatusBadge}.tsx` are cross-cutting.
+- `src/pages/` — one page per domain area (`Patients`, `Prescriptions`, `Stock`, `Notifications`, `Interactions`, `Exports`, `Comptes`), mirroring the backend apps. `src/components/<domaine>/` holds the domain-specific components used by each page; `src/components/{Layout,Modal,RouteProtegee,StatusBadge}.tsx` are cross-cutting.
 - Env var `VITE_API_BASE_URL` (default `http://localhost:8000/api/v1`) is baked into the build at build time (Vite), not read at runtime — see `Dockerfile` build args.
 
 ## Terminology (French, used consistently in code and API)

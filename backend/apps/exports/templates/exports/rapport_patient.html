@@ -18,14 +18,39 @@
     .alerte { color: #b00020; font-weight: bold; }
     .avertissement { background: #fff4e5; border: 1px solid #e0a94b; padding: 10px 12px; font-size: 9.5px; margin-top: 24px; }
     .vide { color: #888; font-style: italic; }
+    h3 { font-size: 11px; margin-top: 14px; margin-bottom: 4px; }
 </style>
 </head>
 <body>
-    <h1>Rapport patient — {{ patient.utilisateur.get_full_name }}</h1>
+    <h1>{% if contenu == "prescriptions" %}Prescriptions par médecin{% elif contenu == "prises" %}Prises du patient{% elif contenu == "stock" %}Stock{% elif contenu == "a_venir" %}Prises à venir et stock{% else %}Rapport patient{% endif %} — {{ patient.utilisateur.get_full_name }}</h1>
     <div class="sous-titre">
         Dossier {{ patient.numero_dossier }} — généré le {{ date_generation|date:"d/m/Y à H:i" }}
     </div>
 
+    {% if contenu == "prescriptions" %}
+    <h2>{% if inclure_inactives %}Prescriptions (actives, arrêtées et terminées){% else %}Prescriptions actives{% endif %}</h2>
+    {% for groupe in prescriptions_par_medecin %}
+    <h3>{{ groupe.medecin }}</h3>
+    <table>
+        <tr><th>Médicament</th><th>Type</th><th>Dose</th><th>Horaires</th><th>Du</th><th>Au</th><th>Statut</th></tr>
+        {% for p in groupe.prescriptions %}
+        <tr>
+            <td>{{ p.medicament.denomination }}</td>
+            <td>{{ p.get_type_prise_display }}</td>
+            <td>{{ p.dose_quantite }} {{ p.dose_unite }}</td>
+            <td>{% for h in p.horaires.all %}{% if h.actif %}{{ h.heure|time:"H:i" }} : {{ h.quantite }}{% if h.intervalle_jours > 1 %} (tous les {{ h.intervalle_jours }} jours){% endif %}<br>{% endif %}{% endfor %}</td>
+            <td>{{ p.date_debut|date:"d/m/Y" }}</td>
+            <td>{{ p.date_fin|date:"d/m/Y"|default:"—" }}</td>
+            <td>{{ p.get_statut_display }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% empty %}
+    <p class="vide">Aucune prescription ne correspond à cette sélection.</p>
+    {% endfor %}
+    {% endif %}
+
+    {% if contenu == "complet" %}
     <h2>Prescriptions actives</h2>
     {% if prescriptions_actives %}
     <table>
@@ -60,8 +85,84 @@
     {% else %}
     <p class="vide">Aucune interaction détectée entre les prescriptions actives.</p>
     {% endif %}
+    {% endif %}
 
-    <h2>Historique des prises ({{ fenetre_historique_jours }} derniers jours)</h2>
+    {% if contenu == "a_venir" %}
+    <h2>Prises prévues du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}</h2>
+    {% if besoins %}
+    <table>
+        <tr><th>Médicament</th><th>Prises prévues</th><th>Quantité nécessaire</th><th>Stock actuel</th><th>Stock estimé au début</th><th>Reste estimé à la fin</th></tr>
+        {% for b in besoins %}
+        <tr>
+            <td>{{ b.medicament }}</td>
+            <td>{{ b.nombre }}</td>
+            <td>{{ b.quantite }} {{ b.unite }}</td>
+            <td>{{ b.stock }}</td>
+            <td>{{ b.stock_au_debut }}</td>
+            <td>{% if b.manque %}<span class="alerte">Il manque {{ b.manque }}</span>{% else %}{{ b.reste }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p class="vide">
+        Calcul d'après les horaires programmés des prescriptions régulières actives et les boîtes
+        actives enregistrées. Le stock estimé au début déduit les prises prévues d'ici là.
+    </p>
+    {% else %}
+    <p class="vide">Aucune prise programmée sur cette période.</p>
+    {% endif %}
+
+    {% if reserves %}
+    <h2>Médicaments de réserve (au besoin)</h2>
+    <table>
+        <tr><th>Médicament</th><th>Dose</th><th>Maximum par jour</th><th>Stock actuel</th></tr>
+        {% for r in reserves %}
+        <tr>
+            <td>{{ r.prescription.medicament.denomination }}</td>
+            <td>{{ r.prescription.dose_quantite }} {{ r.prescription.dose_unite }}</td>
+            <td>{{ r.prescription.dose_max_par_jour|default_if_none:"—" }}</td>
+            <td>{{ r.stock }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p class="vide">Consommation non prévisible : aucune quantité nécessaire n'est estimée pour ces médicaments.</p>
+    {% endif %}
+
+    {% if boites_perimees_avant_la_fin %}
+    <h2>Boîtes qui périment avant la fin de la période</h2>
+    <table>
+        <tr><th>Médicament</th><th>Restant</th><th>Péremption</th></tr>
+        {% for boite in boites_perimees_avant_la_fin %}
+        <tr>
+            <td>{{ boite.medicament.denomination }}</td>
+            <td>{{ boite.quantite_restante }}</td>
+            <td class="alerte">{{ boite.date_peremption|date:"d/m/Y" }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p class="vide">Ces boîtes sont comptées dans le stock ci-dessus.</p>
+    {% endif %}
+    {% endif %}
+
+    {% if contenu == "complet" or contenu == "prises" %}
+    {% if contenu == "prises" %}
+    <h2>Total par médicament ({% if periode_debut %}du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %})</h2>
+    {% if resume_prises %}
+    <table>
+        <tr><th>Médicament</th><th>Nombre de prises</th><th>Quantité totale</th></tr>
+        {% for ligne in resume_prises %}
+        <tr>
+            <td>{{ ligne.medicament }}</td>
+            <td>{{ ligne.nombre }}</td>
+            <td>{{ ligne.quantite }} {{ ligne.unite }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="vide">Aucune prise enregistrée sur cette période.</p>
+    {% endif %}
+    {% endif %}
+
+    <h2>Historique des prises ({% if periode_debut %}du {{ periode_debut|date:"d/m/Y" }} au {{ periode_fin|date:"d/m/Y" }}{% else %}{{ fenetre_historique_jours }} derniers jours{% endif %})</h2>
     {% if historique_prises %}
     <table>
         <tr><th>Date/heure</th><th>Médicament</th><th>Quantité</th><th>Statut</th></tr>
@@ -77,7 +178,9 @@
     {% else %}
     <p class="vide">Aucune prise enregistrée sur cette période.</p>
     {% endif %}
+    {% endif %}
 
+    {% if contenu == "complet" or contenu == "stock" %}
     <h2>Stock actuel</h2>
     {% if boites_actives %}
     <table>
@@ -93,6 +196,7 @@
     </table>
     {% else %}
     <p class="vide">Aucune boîte active en stock.</p>
+    {% endif %}
     {% endif %}
 
     <div class="avertissement">

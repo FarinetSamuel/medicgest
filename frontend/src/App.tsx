@@ -11,6 +11,7 @@ import { Prescriptions } from "./pages/Prescriptions";
 import { Stock } from "./pages/Stock";
 import { Notifications } from "./pages/Notifications";
 import { Interactions } from "./pages/Interactions";
+import { Exports } from "./pages/Exports";
 import { Comptes } from "./pages/Comptes";
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
                 <Route path="/stock" element={<Stock />} />
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/interactions" element={<Interactions />} />
+                <Route path="/exports" element={<Exports />} />
                 <Route path="/comptes" element={<Comptes />} />
               </Route>
             </Routes>

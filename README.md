@@ -383,8 +383,31 @@ GET /api/v1/patients/<id>/export-excel/
 Générés respectivement avec **WeasyPrint** (HTML → PDF) et **openpyxl**
 (classeur à 4 feuilles). L'avertissement sur la fraîcheur des données
 d'interactions (Thésaurus ANSM figé depuis sept. 2023) est repris dans le
-PDF, pas seulement dans l'API. Ces exports sont pour l'instant accessibles
-via l'API uniquement (pas encore de bouton dans le frontend).
+PDF, pas seulement dans l'API.
+
+Le PDF accepte des paramètres de requête facultatifs, proposés par la page
+**Exports** du frontend (l'Excel reste accessible via l'API uniquement) :
+
+- `contenu` : `complet` (défaut), `prescriptions` (regroupées par médecin
+  prescripteur, avec leurs horaires), `prises` (prises effectuées et total
+  par médicament), `stock` (boîtes actives) ou `a_venir` (« liste de
+  vacances » : prises prévues sur une période à venir, quantité nécessaire
+  par médicament et stock correspondant) ;
+- `date_debut` / `date_fin` (`AAAA-MM-JJ`, bornes incluses, à fournir
+  ensemble) : période des prises, à la place des 30 derniers jours.
+  Obligatoires pour `a_venir` ;
+- `medecin` : restreint le contenu `prescriptions` à ce prescripteur ;
+- `inclure_inactives=true` : ajoute au contenu `prescriptions` les
+  prescriptions arrêtées et terminées.
+
+Le contenu `a_venir` est calculé à partir des horaires programmés des
+prescriptions régulières actives (et non des prises déjà générées, limitées
+à 30 jours) : il déduit du stock les prises prévues d'ici le début de la
+période, puis indique ce qui restera ou manquera à la fin. Les prescriptions
+« réserve » y sont listées à part, sans estimation de consommation.
+
+`GET /api/v1/patients/<id>/export-options/` liste les médecins ayant prescrit
+pour ce patient (alimente le choix du médecin).
 
 ## Frontend (palier 6, en cours)
 
@@ -417,7 +440,7 @@ directement via l'interface navigable de Django REST Framework
 3. ✅ Terminé — Stock : boîtes, décompte automatique, alertes de réapprovisionnement
 4. ✅ Terminé — Notifications : e-mail et in-app fonctionnels ; SMS en attente d'un fournisseur
 5. ✅ Terminé — Vérification des interactions médicamenteuses (Thésaurus ANSM, figé depuis sept. 2023 — voir avertissement ci-dessus)
-6. 🔶 En cours — Exports PDF/Excel ✅ terminés (API) ; frontend React en cours : tableau de bord, thème clair/sombre et pages par domaine disponibles, boutons d'export à venir
+6. 🔶 En cours — Exports PDF/Excel ✅ terminés (API) ; frontend React en cours : tableau de bord, thème clair/sombre et pages par domaine et page d'export PDF disponibles
 
 ## Contribuer
 

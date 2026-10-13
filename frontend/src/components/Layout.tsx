@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Users, Pill, Package, Bell, AlertTriangle, UserCog,
+  LayoutDashboard, Users, Pill, Package, Bell, AlertTriangle, FileDown, UserCog,
   Moon, Sun, LogOut,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +14,7 @@ const LIENS = [
   { to: "/stock", label: "Stock", icone: Package },
   { to: "/notifications", label: "Notifications", icone: Bell },
   { to: "/interactions", label: "Interactions", icone: AlertTriangle },
+  { to: "/exports", label: "Exports", icone: FileDown },
   { to: "/comptes", label: "Comptes", icone: UserCog, reserveAdmin: true },
 ];
 
