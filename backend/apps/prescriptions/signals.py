@@ -12,7 +12,7 @@ confirmation recopiait ensuite dans quantite_prise (stock et rappels
 erronés).
 """
 
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
 from .logique import (
@@ -25,6 +25,15 @@ from .logique import (
 from .models import HoraireProgramme, Prescription
 
 
+@receiver(pre_save, sender=HoraireProgramme)
+def memoriser_heure_avant_sauvegarde_horaire(sender, instance, **kwargs):
+    # L'heure d'avant modification n'est plus connue dans post_save : elle
+    # est relue ici pour ne déplacer que les prises placées à cette heure.
+    instance._heure_avant_sauvegarde = (
+        HoraireProgramme.objects.filter(pk=instance.pk).values_list("heure", flat=True).first()
+    )
+
+
 @receiver(post_save, sender=HoraireProgramme)
 def synchroniser_prises_a_la_sauvegarde_horaire(sender, instance, created, **kwargs):
     if created:
@@ -34,7 +43,9 @@ def synchroniser_prises_a_la_sauvegarde_horaire(sender, instance, created, **kwa
         supprimer_prises_attendues_a_venir(instance)
         return
     supprimer_prises_attendues_hors_rythme(instance)
-    decaler_prises_attendues_a_la_nouvelle_heure(instance)
+    ancienne_heure = getattr(instance, "_heure_avant_sauvegarde", None)
+    if ancienne_heure is not None:
+        decaler_prises_attendues_a_la_nouvelle_heure(instance, ancienne_heure)
     synchroniser_quantite_prises_attendues(instance)
 
 

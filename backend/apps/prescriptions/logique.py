@@ -174,10 +174,10 @@ def supprimer_prises_attendues_a_venir(horaire, maintenant=None) -> int:
     return nb_supprimees
 
 
-def decaler_prises_attendues_a_la_nouvelle_heure(horaire, maintenant=None) -> int:
+def decaler_prises_attendues_a_la_nouvelle_heure(horaire, ancienne_heure, maintenant=None) -> int:
     """
-    Reporte l'heure actuelle d'un HoraireProgramme sur ses Prise encore
-    ATTENDUE et à venir.
+    Reporte le changement d'heure d'un HoraireProgramme (de ancienne_heure
+    à horaire.heure) sur ses Prise encore ATTENDUE et à venir.
 
     La génération à l'avance identifie une prise par (prescription, horaire,
     date_heure_prevue) : sans ce décalage, passer un horaire de 20:00 à
@@ -192,8 +192,11 @@ def decaler_prises_attendues_a_la_nouvelle_heure(horaire, maintenant=None) -> in
     déplacer dans le passé la ferait confirmer automatiquement à une heure
     où rien n'était prévu.
 
-    Seules les prises futures au statut ATTENDUE sont concernées, comme
-    pour les autres synchronisations. .update() volontaire : une prise
+    Seules les prises futures au statut ATTENDUE et placées à l'ancienne
+    heure sont concernées : une prise dont l'heure prévue a été modifiée
+    individuellement n'est pas ramenée à l'heure de l'horaire, et un
+    enregistrement de l'horaire sans changement d'heure ne déplace rien.
+    .update() volontaire : une prise
     ATTENDUE n'a aucun mouvement de stock, le signal post_save n'a donc rien
     à recalculer.
     """
@@ -201,6 +204,8 @@ def decaler_prises_attendues_a_la_nouvelle_heure(horaire, maintenant=None) -> in
     # L'instance peut porter l'heure sous forme de chaîne ("20:00") si elle
     # n'a pas été relue depuis la base.
     heure = HoraireProgramme._meta.get_field("heure").to_python(horaire.heure)
+    if heure == ancienne_heure:
+        return 0
     a_venir = Prise.objects.filter(
         horaire_programme=horaire,
         statut=Prise.Statut.ATTENDUE,
@@ -209,7 +214,7 @@ def decaler_prises_attendues_a_la_nouvelle_heure(horaire, maintenant=None) -> in
     modifiees = 0
     for prise in a_venir:
         prevue_locale = timezone.localtime(prise.date_heure_prevue)
-        if prevue_locale.time() == heure:
+        if prevue_locale.time() != ancienne_heure:
             continue
         nouvelle = timezone.make_aware(datetime.datetime.combine(prevue_locale.date(), heure))
         if nouvelle < maintenant:
