@@ -270,6 +270,121 @@ class GenererPrisesAttenduesCommandTest(TestCase):
         )
         self.assertTrue(Prise.objects.filter(pk=effectuee.pk).exists())
 
+    def _prises_attendues_a_venir(self):
+        return Prise.objects.filter(
+            prescription=self.prescription,
+            statut=Prise.Statut.ATTENDUE,
+            date_heure_prevue__gte=timezone.now(),
+        )
+
+    def test_supprimer_un_horaire_supprime_ses_prises_attendues_a_venir(self):
+        """
+        Les prises étant générées à l'avance, un horaire supprimé ne doit
+        pas laisser ses prises attendues (rappels et décompte de stock pour
+        un horaire qui n'existe plus). L'autre horaire et l'historique ne
+        sont pas touchés.
+        """
+        from django.core.management import call_command
+
+        call_command("generer_prises_attendues", jours=7)
+        horaire_soir = self.prescription.horaires.get(heure="20:00")
+        horaire_matin = self.prescription.horaires.get(heure="08:00")
+        effectuee = Prise.objects.get(
+            horaire_programme=horaire_soir,
+            date_heure_prevue__date=timezone.localdate() + datetime.timedelta(days=3),
+        )
+        effectuee.statut = Prise.Statut.PRISE
+        effectuee.save()
+        nb_matin = self._prises_attendues_a_venir().filter(horaire_programme=horaire_matin).count()
+
+        horaire_soir.delete()
+
+        a_venir = self._prises_attendues_a_venir()
+        self.assertEqual(a_venir.count(), nb_matin)
+        self.assertFalse(a_venir.exclude(horaire_programme=horaire_matin).exists())
+        self.assertTrue(Prise.objects.filter(pk=effectuee.pk).exists())
+
+    def test_desactiver_un_horaire_supprime_ses_prises_attendues_a_venir(self):
+        from django.core.management import call_command
+
+        call_command("generer_prises_attendues", jours=7)
+        horaire_soir = self.prescription.horaires.get(heure="20:00")
+
+        horaire_soir.actif = False
+        horaire_soir.save()
+
+        self.assertFalse(
+            self._prises_attendues_a_venir().filter(horaire_programme=horaire_soir).exists()
+        )
+        self.assertTrue(
+            self._prises_attendues_a_venir().exclude(horaire_programme=horaire_soir).exists()
+        )
+
+    def test_changer_l_heure_deplace_les_prises_attendues_a_venir(self):
+        """
+        Un horaire passé de 20:00 à 21:00 ne doit pas garder ses prises de
+        20:00 déjà générées, ni en produire en double à la génération
+        suivante (rappels et décompte de stock doublés).
+        """
+        from django.core.management import call_command
+
+        call_command("generer_prises_attendues", jours=7)
+        horaire_soir = self.prescription.horaires.get(heure="20:00")
+
+        horaire_soir.heure = datetime.time(21, 0)
+        horaire_soir.save()
+        call_command("generer_prises_attendues", jours=7)
+
+        aujourdhui = timezone.localdate()
+        # À partir de demain, pour ne pas dépendre de l'heure d'exécution du test.
+        prevues = sorted(
+            timezone.localtime(p.date_heure_prevue)
+            for p in self._prises_attendues_a_venir().filter(
+                horaire_programme=horaire_soir, date_heure_prevue__date__gt=aujourdhui
+            )
+        )
+        self.assertEqual(
+            [p.date() for p in prevues],
+            [aujourdhui + datetime.timedelta(days=i) for i in range(1, 7)],
+        )
+        self.assertEqual({p.time() for p in prevues}, {datetime.time(21, 0)})
+
+    def test_arreter_la_prescription_supprime_ses_prises_attendues_a_venir(self):
+        from django.core.management import call_command
+
+        call_command("generer_prises_attendues", jours=7)
+        effectuee = Prise.objects.get(
+            horaire_programme__heure="20:00",
+            date_heure_prevue__date=timezone.localdate() + datetime.timedelta(days=3),
+        )
+        effectuee.statut = Prise.Statut.PRISE
+        effectuee.save()
+
+        self.prescription.statut = Prescription.Statut.ARRETEE
+        self.prescription.save()
+
+        self.assertFalse(self._prises_attendues_a_venir().exists())
+        self.assertTrue(Prise.objects.filter(pk=effectuee.pk).exists())
+
+    def test_avancer_la_date_de_fin_supprime_les_prises_attendues_au_dela(self):
+        from django.core.management import call_command
+
+        call_command("generer_prises_attendues", jours=7)
+        aujourdhui = timezone.localdate()
+
+        self.prescription.date_fin = aujourdhui + datetime.timedelta(days=2)
+        self.prescription.save()
+
+        # À partir de demain, pour ne pas dépendre de l'heure d'exécution du test.
+        jours = sorted(
+            timezone.localtime(p.date_heure_prevue).date()
+            for p in self._prises_attendues_a_venir().filter(date_heure_prevue__date__gt=aujourdhui)
+        )
+        # 2 horaires x 2 jours restants (demain, après-demain)
+        self.assertEqual(
+            jours, [aujourdhui + datetime.timedelta(days=i) for i in (1, 1, 2, 2)]
+        )
+
 
 class ConfirmerPrisesAutomatiquesTest(TestCase):
     """
