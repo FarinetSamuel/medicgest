@@ -7,12 +7,17 @@ voir canaux.envoyer_notification, appelé séparément par les commandes).
 import datetime
 
 from django.conf import settings
+from django.db import connection, transaction
 from django.utils import timezone
 
 from apps.prescriptions.models import Prescription, Prise
 from apps.stock.models import Boite
 
 from .models import Notification
+
+# Clé du verrou consultatif PostgreSQL qui sérialise generer_rappels_prises_a_venir
+# (valeur arbitraire, propre à ce verrou).
+VERROU_RAPPELS_PRISES = 4_150_001
 
 
 def _destinataires_alerte_stock(patient) -> list:
@@ -35,6 +40,7 @@ def _destinataires_alerte_stock(patient) -> list:
     return destinataires
 
 
+@transaction.atomic
 def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[Notification]:
     """
     Crée un rappel in_app pour chaque Prise ATTENDUE dont l'heure prévue
@@ -46,7 +52,16 @@ def generer_rappels_prises_a_venir(fenetre_minutes: int | None = None) -> list[N
     séparément), mais l'e-mail est regroupé : un seul e-mail par
     destinataire, listant toutes ses prises à venir détectées lors de cet
     appel, plutôt qu'un e-mail par prise.
+
+    Sérialisé par un verrou consultatif PostgreSQL tenu jusqu'à la fin de
+    la transaction : deux exécutions simultanées (ex. deux processus cron)
+    liraient sinon les mêmes prises sans rappel avant que l'une n'ait
+    enregistré les siens, et enverraient chacune le même e-mail. La seconde
+    attend ici, puis ne voit plus que les prises restant sans rappel.
     """
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_advisory_xact_lock(%s)", [VERROU_RAPPELS_PRISES])
+
     fenetre_minutes = fenetre_minutes or getattr(settings, "RAPPEL_PRISE_FENETRE_MINUTES", 15)
     maintenant = timezone.now()
     limite = maintenant + datetime.timedelta(minutes=fenetre_minutes)

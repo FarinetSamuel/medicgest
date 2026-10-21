@@ -1,9 +1,11 @@
 import datetime
+import threading
 from unittest.mock import patch
 
 from django.contrib.auth.models import Group
 from django.core import mail
-from django.test import TestCase, override_settings
+from django.db import connection, transaction
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
 from apps.medicaments.models import Medicament
@@ -16,7 +18,12 @@ from apps.patients.models import PatientMedecin
 
 from .admin import ConfigurationEmailForm
 from .canaux import envoyer_notification
-from .logique import generer_alertes_rupture_stock, generer_alertes_stock, generer_rappels_prises_a_venir
+from .logique import (
+    VERROU_RAPPELS_PRISES,
+    generer_alertes_rupture_stock,
+    generer_alertes_stock,
+    generer_rappels_prises_a_venir,
+)
 from .models import ConfigurationEmail, Notification
 
 
@@ -124,6 +131,51 @@ class RappelsPrisesTest(TestCase):
         )
         notifications = generer_rappels_prises_a_venir(fenetre_minutes=15)
         self.assertEqual(len(notifications), 0)
+
+
+class RappelsPrisesConcurrenceTest(TransactionTestCase):
+    """
+    Deux exécutions simultanées de envoyer_rappels_prises (ex. deux
+    processus cron) ne doivent pas lire les mêmes prises avant que l'une
+    ait enregistré ses rappels — sinon le patient reçoit deux e-mails
+    identiques. Vérifie que la génération attend le verrou tenu par une
+    autre exécution en cours.
+    """
+
+    def test_attend_la_fin_d_une_execution_concurrente(self):
+        verrou_pris = threading.Event()
+        liberer = threading.Event()
+
+        def execution_en_cours():
+            try:
+                with transaction.atomic(), connection.cursor() as cursor:
+                    cursor.execute("SELECT pg_advisory_xact_lock(%s)", [VERROU_RAPPELS_PRISES])
+                    verrou_pris.set()
+                    liberer.wait(timeout=10)
+            finally:
+                connection.close()
+
+        def seconde_execution():
+            try:
+                generer_rappels_prises_a_venir(fenetre_minutes=15)
+            finally:
+                connection.close()
+
+        premiere = threading.Thread(target=execution_en_cours)
+        premiere.start()
+        self.assertTrue(verrou_pris.wait(timeout=10))
+
+        seconde = threading.Thread(target=seconde_execution)
+        seconde.start()
+        seconde.join(timeout=1)
+        bloquee = seconde.is_alive()
+
+        liberer.set()
+        premiere.join(timeout=10)
+        seconde.join(timeout=10)
+
+        self.assertTrue(bloquee)
+        self.assertFalse(seconde.is_alive())
 
 
 class AlertesStockNotificationTest(TestCase):
